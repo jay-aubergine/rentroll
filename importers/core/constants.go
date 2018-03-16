@@ -57,4 +57,5 @@ var SpecialCharsReplacer = strings.NewReplacer(
 	";", "", ":", "", "\"", "", "'", "", // line3
 	",", "", "<", "", ".", "", ">", "", "/", "", "?", "", // line4
 	" ", "", // whitespace
+	"\n", "", "\r", "", // newline
 )
