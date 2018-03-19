@@ -19,7 +19,7 @@ type CSVFieldMap struct {
 // csvColumnFieldMap contains internal OneSite Structure fields
 // to csv columns, used to refer columns from struct fields
 var csvColumnFieldMap = map[string]string{
-	"unit":            "Unit",
+	"bldgunit":        "Unit",
 	"floorplan":       "FloorPlan",
 	"unitdesignation": "UnitDesignation",
 	"sqft":            "SQFT",
