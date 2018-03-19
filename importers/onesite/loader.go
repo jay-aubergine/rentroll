@@ -161,7 +161,7 @@ func loadOneSiteCSV(
 	// load csv file and get data from csv
 	t := rlib.LoadCSV(oneSiteCSV)
 
-	csvHeadersIndex := getCSVHeadersIndexMap()
+	CSVHeaderMap := getCSVHeadersMap()
 
 	// detect how many rows we need to skip first
 	for rowIndex := 0; rowIndex < len(t); rowIndex++ {
@@ -184,13 +184,16 @@ func loadOneSiteCSV(
 
 			// if header is exist in map then overwrite it position
 			if field, ok := csvColumnFieldMap[cellTextValue]; ok {
-				csvHeadersIndex[field] = colIndex
+				CSVHeaderMap[field] = CSVHeader{
+					Index:      colIndex,
+					IsOptional: CSVHeaderMap[field].IsOptional,
+				}
 			}
 		}
 		// check after row columns parsing that headers are found or not
 		headersFound := true
-		for _, v := range csvHeadersIndex {
-			if v == -1 {
+		for _, v := range CSVHeaderMap {
+			if v.Index == -1 && !v.IsOptional {
 				headersFound = false
 				break
 			}
@@ -208,8 +211,8 @@ func loadOneSiteCSV(
 	if skipRowsCount == 0 {
 		missingHeaders := []string{}
 		// make message of missing columns
-		for missedH, v := range csvHeadersIndex {
-			if v == -1 {
+		for missedH, v := range CSVHeaderMap {
+			if v.Index == -1 && !v.IsOptional {
 				missingHeaders = append(missingHeaders, missedH)
 			}
 		}
@@ -287,7 +290,7 @@ func loadOneSiteCSV(
 
 		// if column order has been validated then only perform
 		// data validation on value, type
-		rowLoaded, csvRow := loadOneSiteCSVRow(csvHeadersIndex, t[rowIndex-1])
+		rowLoaded, csvRow := loadOneSiteCSVRow(CSVHeaderMap, t[rowIndex-1])
 
 		// **************************************************************
 		// NOTE: might need to change logic, if t[i] contains blank data that
