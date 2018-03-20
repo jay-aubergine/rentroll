@@ -249,8 +249,8 @@ func GetRentableSpec(
 
 	// append rentable
 	orderedFields = append(orderedFields, csvRow.Unit)
-	// append contractrent
-	orderedFields = append(orderedFields, csvRow.Rent)
+	// append contractrent after converting
+	orderedFields = append(orderedFields, core.DgtGrpSepToDgts(csvRow.Rent))
 
 	return strings.Join(orderedFields, ",")
 }

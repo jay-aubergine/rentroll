@@ -171,6 +171,12 @@ func GetRentableTypeCSVRow(
 		// get field by mapping field name and then value
 		OneSiteFieldValue := reflectedOneSiteRow.FieldByName(MappedFieldName).Interface()
 		dataMap[i] = OneSiteFieldValue.(string)
+
+		// this condition is kept here to convert group seperated MarketRate value to normal form
+		if rentableTypeField.Name == "MarketRate" {
+			dataMap[i] = core.DgtGrpSepToDgts(dataMap[i])
+		}
+
 	}
 
 	dataArray := []string{}
