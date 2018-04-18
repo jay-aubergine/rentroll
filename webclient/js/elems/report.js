@@ -4,7 +4,7 @@
     w2uiDateControlString
 */
 "use strict";
-function showReport(rptname, elToFocus) {
+window.showReport = function (rptname, elToFocus) {
     if (rptname === '') {
         return;
     }
@@ -29,9 +29,9 @@ function showReport(rptname, elToFocus) {
     //     };
     // }
     w2ui.reportslayout.load('main', url, null, null /*callBack*/);
-}
+};
 
-function buildReportElements(){
+window.buildReportElements = function (){
     //------------------------------------------------------------------------
     //          reportslayout
     //------------------------------------------------------------------------
@@ -54,10 +54,10 @@ function buildReportElements(){
     var tmp = genDateRangeNavigator('date');
     tmp.push.apply(tmp, [
         { type: 'spacer',},
-        { type: 'button', id: 'csvexport', icon: 'fa fa-table', tooltip: 'export to CSV' },
-        { type: 'button', id: 'printreport', icon: 'fa fa-file-pdf-o', tooltip: 'export to PDF' },
+        { type: 'button', id: 'csvexport', icon: 'fas fa-table', tooltip: 'export to CSV' },
+        { type: 'button', id: 'printreport', icon: 'far fa-file-pdf', tooltip: 'export to PDF' },
         { type: 'break', id: 'break2' },
-        { type: 'menu-radio', id: 'page_size', icon: 'fa fa-print',
+        { type: 'menu-radio', id: 'page_size', icon: 'fas fa-print',
             tooltip: 'exported PDF page size',
             text: function (item) {
             //var text = item.selected;
@@ -75,7 +75,7 @@ function buildReportElements(){
                 { id: 'Custom', text: 'Custom'},
             ]
         },
-        { type: 'menu-radio', id: 'orientation', icon: 'fa fa-clone',
+        { type: 'menu-radio', id: 'orientation', icon: 'far fa-clone fa-rotate-90',
             tooltip: 'exported PDF orientation',
             text: function (item) {
             //var text = item.selected;
@@ -195,4 +195,4 @@ function buildReportElements(){
         app.D2 = dateControlString(d2);
         showReport(app.last.report, "dateD2");
     });
-}
+};

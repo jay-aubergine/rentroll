@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"rentroll/rlib"
+	"rentroll/worker"
 	"sort"
 	"strings"
 
@@ -126,6 +127,7 @@ func GetJSDepositMethods(ctx context.Context) map[string][]DepMethMap {
 //	@Input WebGridSearchRequest
 //  @Response JSONResponse
 // wsdoc }
+//-----------------------------------------------------------------------------
 func SvcUILists(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	const funcname = "SvcUILists"
 	fmt.Printf("Entered %s\n", funcname)
@@ -162,6 +164,15 @@ func SvcUILists(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	}
 	appData["BizMap"] = businessList
 
+	// --------------- LIST DOWN Workers ----------------------
+	var wa []IDTextMap
+	ss := worker.GetWorkerList()
+	for i := 0; i < len(ss); i++ {
+		var p = IDTextMap{ID: int64(i), Text: ss[i]}
+		wa = append(wa, p)
+	}
+	appData["workers"] = wa
+
 	// --------------- LIST DOWN Business FLAGS ----------------------
 	bizFLAGS := make(map[string]int64)
 	for _, bcache := range rlib.RRdb.BizCache {
@@ -177,6 +188,9 @@ func SvcUILists(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 
 	// --------------- LIST DOWN rentroll report FLAGS --------------
 	appData["rrFLAGS"] = rrFLAGS
+
+	// --------------- LIST DOWN ra flow part types --------------
+	appData["raFlowPartTypes"] = raFlowPartTypes
 
 	// --------------- MAPPING - smapToJS ----------------------
 	for i := 0; i < len(smapToJS); i++ {

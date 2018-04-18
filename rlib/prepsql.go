@@ -795,7 +795,7 @@ func buildPreparedStatements() {
 	//===============================
 	//  Rentable
 	//===============================
-	flds = "RID,BID,RentableName,AssignmentTime,MRStatus,DtMRStart,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "RID,BID,RentableName,AssignmentTime,MRStatus,DtMRStart,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["Rentable"] = flds
 	RRdb.Prepstmt.CountBusinessRentables, err = RRdb.Dbrr.Prepare("SELECT COUNT(RID) FROM Rentable WHERE BID=?")
 	Errcheck(err)
@@ -1192,7 +1192,7 @@ func buildPreparedStatements() {
 	//==========================================
 	// TASKDESCRIPTOR
 	//==========================================
-	flds = "TDID,BID,TLDID,Name,Worker,EpochDue,EpochPreDue,FLAGS,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "TDID,BID,TLDID,Name,Worker,EpochDue,EpochPreDue,FLAGS,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskDescriptor"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
 	RRdb.Prepstmt.GetTaskDescriptor, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskDescriptor WHERE TDID=?")
@@ -1209,7 +1209,7 @@ func buildPreparedStatements() {
 	//==========================================
 	// TASK LIST DEFINITION
 	//==========================================
-	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskListDefinition"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
 	RRdb.Prepstmt.GetTaskListDefinition, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskListDefinition WHERE TLDID=?")
@@ -1280,4 +1280,28 @@ func buildPreparedStatements() {
 	RRdb.Prepstmt.DeleteVehicle, err = RRdb.Dbrr.Prepare("DELETE from Vehicle WHERE VID=?")
 	Errcheck(err)
 
+	//==========================================
+	// Flow Part
+	//==========================================
+	flds = "FlowPartID,BID,Flow,FlowID,PartType,Data,CreateTS,CreateBy,LastModTime,LastModBy"
+	RRdb.DBFields["FlowPart"] = flds
+	RRdb.Prepstmt.GetFlowPart, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where FlowPartID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.GetFlowPartByPartType, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where FlowID=? AND PartType=?")
+	Errcheck(err)
+	RRdb.Prepstmt.GetFlowIDsByUser, err = RRdb.Dbrr.Prepare("SELECT DISTINCT FlowID FROM FlowPart where Flow=? AND CreateBy=?")
+	Errcheck(err)
+	RRdb.Prepstmt.GetFlowPartsByFlow, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where Flow=? AND BID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.GetFlowPartsByFlowID, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where FlowID=?")
+	Errcheck(err)
+	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
+	RRdb.Prepstmt.InsertFlowPart, err = RRdb.Dbrr.Prepare("INSERT INTO FlowPart (" + s1 + ") VALUES(" + s2 + ")")
+	Errcheck(err)
+	RRdb.Prepstmt.UpdateFlowPart, err = RRdb.Dbrr.Prepare("UPDATE FlowPart SET " + s3 + " WHERE FlowPartID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.DeleteFlowPart, err = RRdb.Dbrr.Prepare("DELETE from FlowPart WHERE FlowPartID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.DeleteFlowPartsByFlowID, err = RRdb.Dbrr.Prepare("DELETE from FlowPart WHERE FlowID=?")
+	Errcheck(err)
 }

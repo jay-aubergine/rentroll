@@ -1,8 +1,7 @@
 -- MySQL dump 10.13  Distrib 5.7.16, for osx10.12 (x86_64)
 --
--- Host: localhost    Database: rentroll
+-- Host: 127.0.0.1    Database: rentroll
 -- ------------------------------------------------------
--- Server version	5.7.16
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -553,6 +552,38 @@ CREATE TABLE `Expense` (
 LOCK TABLES `Expense` WRITE;
 /*!40000 ALTER TABLE `Expense` DISABLE KEYS */;
 /*!40000 ALTER TABLE `Expense` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `FlowPart`
+--
+
+DROP TABLE IF EXISTS `FlowPart`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `FlowPart` (
+  `FlowPartID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `BID` bigint(20) NOT NULL DEFAULT '0',
+  `Flow` varchar(50) NOT NULL DEFAULT '',
+  `FlowID` varchar(50) NOT NULL DEFAULT '',
+  `PartType` smallint(6) NOT NULL DEFAULT '0',
+  `Data` json DEFAULT NULL,
+  `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `LastModBy` bigint(20) NOT NULL DEFAULT '0',
+  `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `CreateBy` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`FlowPartID`),
+  UNIQUE KEY `FlowPartUnique` (`FlowPartID`,`BID`,`FlowID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `FlowPart`
+--
+
+LOCK TABLES `FlowPart` WRITE;
+/*!40000 ALTER TABLE `FlowPart` DISABLE KEYS */;
+/*!40000 ALTER TABLE `FlowPart` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1498,6 +1529,7 @@ CREATE TABLE `Rentable` (
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `CreateBy` bigint(20) NOT NULL DEFAULT '0',
+  `Comment` varchar(2048) NOT NULL DEFAULT '',
   PRIMARY KEY (`RID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1508,7 +1540,7 @@ CREATE TABLE `Rentable` (
 
 LOCK TABLES `Rentable` WRITE;
 /*!40000 ALTER TABLE `Rentable` DISABLE KEYS */;
-INSERT INTO `Rentable` VALUES (1,1,'Unit 1',2,0,'2017-10-10 05:04:04','2017-08-31 17:53:35',0,'2017-08-31 17:53:35',0),(2,1,'Unit 2',2,0,'2017-10-10 05:04:04','2017-08-31 17:54:09',0,'2017-08-31 17:54:09',0);
+INSERT INTO `Rentable` VALUES (1,1,'Unit 1',2,0,'2017-10-10 05:04:04','2017-08-31 17:53:35',0,'2017-08-31 17:53:35',0,''),(2,1,'Unit 2',2,0,'2017-10-10 05:04:04','2017-08-31 17:54:09',0,'2017-08-31 17:54:09',0,'');
 /*!40000 ALTER TABLE `Rentable` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2159,6 +2191,7 @@ CREATE TABLE `TaskDescriptor` (
   `EpochDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `EpochPreDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `Comment` varchar(2048) NOT NULL DEFAULT '',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2229,6 +2262,7 @@ CREATE TABLE `TaskListDefinition` (
   `EpochDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `EpochPreDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `Comment` varchar(2048) NOT NULL DEFAULT '',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2441,4 +2475,3 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-03-20 22:29:17

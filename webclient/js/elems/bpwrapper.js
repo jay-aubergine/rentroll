@@ -1,12 +1,16 @@
 /*global
-	buildDepositElements, buildAppLayout, buildSidebar, buildAllocFundsGrid, buildAccountElements,
-    buildTransactElements, buildRentableTypeElements, buildRentableElements,
-    buildRAElements, buildRAPayorPicker, buildRUserPicker, buildRentablePicker,
-    buildRAPicker, buildReceiptElements, buildAssessmentElements, buildExpenseElements,
-    buildARElements, buildPaymentTypeElements, buildDepositoryElements, buildDepositElements,
-    buildStatementsElements, buildReportElements, buildLedgerElements, buildTWSElements,
-    buildDepositMethodElements, buildPayorStatementElements, buildRentRollElements, buildLoginForm,
-    buildAppLayout, buildROVReceiptElements,
+	buildDepositElements, buildAppLayout, buildSidebar, buildAllocFundsGrid,
+    buildAccountElements, buildTransactElements, buildRentableTypeElements,
+    buildRentableElements, buildRAElements, buildRAPayorPicker,
+    buildRUserPicker, buildRentablePicker, buildRAPicker, buildReceiptElements,
+    buildAssessmentElements, buildExpenseElements, buildARElements,
+    buildPaymentTypeElements, buildDepositoryElements, buildDepositElements,
+    buildStatementsElements, buildReportElements, buildLedgerElements,
+    buildTWSElements, buildDepositMethodElements, buildPayorStatementElements,
+    buildRentRollElements, buildLoginForm, buildAppLayout,
+    buildROVReceiptElements,buildTaskListElements,buildTaskListDefElements,
+    finishTaskListForm, createDepositForm, createPayorStmtForm,
+    createStmtForm, createRentalAgreementForm, finishForms, finishTLDForm,
 */
 
 "use strict";
@@ -20,7 +24,7 @@
 //
 // RETURNS:
 //  nothing
-function buildPageElementsWrapper(uitype) {
+window.buildPageElementsWrapper = function (uitype) {
     buildAppLayout();
     buildSidebar(uitype);
     buildAllocFundsGrid();
@@ -51,4 +55,16 @@ function buildPageElementsWrapper(uitype) {
     buildPayorStatementElements();
     buildRentRollElements();
     buildLoginForm();
-}
+    buildTaskListElements();
+    buildTaskListDefElements();
+    finishForms();
+};
+
+window.finishForms = function () {
+    createRentalAgreementForm();
+    createStmtForm();
+    createPayorStmtForm();
+    createDepositForm();
+    finishTaskListForm();
+    finishTLDForm();
+};

@@ -1,6 +1,6 @@
 /*global
     $,w2ui,console,app,form_dirty_alert,addDateNavToToolbar,exportReportCSV,
-    exportReportPDF, popupPDFCustomDimensions, w2utils,
+    exportReportPDF, popupPDFCustomDimensions, w2utils, calculateRRPagination
 */
 
 //
@@ -9,7 +9,7 @@
 
 "use strict";
 
-function getRentRollViewInitRecord(){
+window.getRentRollViewInitRecord = function (){
     return {
         recid: 0,
         BID: 0,
@@ -47,14 +47,14 @@ function getRentRollViewInitRecord(){
         EndSecDep: "",
         FLAGS: -1,
     };
-}
+};
 
 var grey_fields = [
     "BeginReceivable", "DeltaReceivable", "EndReceivable",
     "BeginSecDep","DeltaSecDep","EndSecDep"
 ];
 
-function buildRentRollElements() {
+window.buildRentRollElements = function () {
     //------------------------------------------------------------------------
     //  rr  -  lists all the assessments and receipts for
     //                     the selected Payors
@@ -314,10 +314,10 @@ function buildRentRollElements() {
     // now add items for csv/pdf export report options
     w2ui.rrGrid.toolbar.add([
         { type: 'spacer',},
-        { type: 'button', id: 'csvexport', icon: 'fa fa-table', tooltip: 'export to CSV' },
-        { type: 'button', id: 'printreport', icon: 'fa fa-file-pdf-o', tooltip: 'export to PDF' },
+        { type: 'button', id: 'csvexport', icon: 'fas fa-table', tooltip: 'export to CSV' },
+        { type: 'button', id: 'printreport', icon: 'far fa-file-pdf', tooltip: 'export to PDF' },
         { type: 'break', id: 'break2' },
-        { type: 'menu-radio', id: 'page_size', icon: 'fa fa-print',
+        { type: 'menu-radio', id: 'page_size', icon: 'fas fa-print',
             tooltip: 'exported PDF page size',
             text: function (item) {
             //var text = item.selected;
@@ -335,7 +335,7 @@ function buildRentRollElements() {
                 { id: 'Custom', text: 'Custom'},
             ]
         },
-        { type: 'menu-radio', id: 'orientation', icon: 'fa fa-clone',
+        { type: 'menu-radio', id: 'orientation', icon: 'far fa-clone fa-rotate-90',
             tooltip: 'exported PDF orientation',
             text: function (item) {
             //var text = item.selected;
@@ -368,10 +368,10 @@ function buildRentRollElements() {
             exportReportPDF("RPTrr", app.D1, app.D2);
         }
     });
-}
+};
 
 
-function calculateRRPagination() {
+window.calculateRRPagination = function () {
     // perform virtual scroll
     var g = w2ui.rrGrid;
     var url  = (typeof g.url != 'object' ? g.url : g.url.get);
@@ -414,4 +414,4 @@ function calculateRRPagination() {
         (g.show.statusRange ? w2utils.formatNumber(startPageNo) + '-' + w2utils.formatNumber(endPageNo) +
         (g._total_main_rows != -1 ? ' ' + w2utils.lang('of') + ' ' +    w2utils.formatNumber(g._total_main_rows) : '') : '')
     );
-}
+};

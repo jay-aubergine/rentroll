@@ -459,7 +459,7 @@ func UpdateRentable(ctx context.Context, a *Rentable) error {
 		a.LastModBy = sess.UID
 	}
 
-	fields := []interface{}{a.BID, a.RentableName, a.AssignmentTime, a.MRStatus, a.DtMRStart, a.LastModBy, a.RID}
+	fields := []interface{}{a.BID, a.RentableName, a.AssignmentTime, a.MRStatus, a.DtMRStart, a.Comment, a.LastModBy, a.RID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateRentable)
 		defer stmt.Close()
@@ -1084,7 +1084,7 @@ func UpdateTaskDescriptor(ctx context.Context, a *TaskDescriptor) error {
 		return ErrSessionRequired
 	}
 
-	fields := []interface{}{a.BID, a.TLDID, a.Name, a.Worker, a.EpochDue, a.EpochPreDue, a.FLAGS, a.LastModBy, a.TDID}
+	fields := []interface{}{a.BID, a.TLDID, a.Name, a.Worker, a.EpochDue, a.EpochPreDue, a.FLAGS, a.Comment, a.LastModBy, a.TDID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateTransactant)
 		defer stmt.Close()
@@ -1101,7 +1101,7 @@ func UpdateTaskListDefinition(ctx context.Context, a *TaskListDefinition) error 
 	if authProblem(ctx, &a.LastModBy) {
 		return ErrSessionRequired
 	}
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.LastModBy, a.TLDID}
+	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.Comment, a.LastModBy, a.TLDID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateTransactant)
 		defer stmt.Close()
@@ -1187,4 +1187,36 @@ func UpdateVehicle(ctx context.Context, a *Vehicle) error {
 		_, err = RRdb.Prepstmt.UpdateVehicle.Exec(fields...)
 	}
 	return updateError(err, "Vehicle", *a)
+}
+
+// UpdateFlowPart updates the flow part by data provided in flowpart
+func UpdateFlowPart(ctx context.Context, a *FlowPart) error {
+	var err error
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		sess, ok := SessionFromContext(ctx)
+		if !ok {
+			return ErrSessionRequired
+		}
+		// user from session, CreateBy, LastModBy
+		a.LastModBy = sess.UID
+	}
+
+	// make sure that json is valid before inserting it in database
+	if !(IsFlowDataValidJSON(a.Data)) {
+		return ErrFlowInvalidJSONData
+	}
+
+	// as a.Data is type of json.RawMessage - convert it to byte stream so that it can be inserted
+	// in mysql `json` type column
+	fields := []interface{}{a.BID, a.Flow, a.FlowID, a.PartType, []byte(a.Data), a.LastModBy, a.FlowPartID}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.UpdateFlowPart)
+		defer stmt.Close()
+		_, err = stmt.Exec(fields...)
+	} else {
+		_, err = RRdb.Prepstmt.UpdateFlowPart.Exec(fields...)
+	}
+	return updateError(err, "FlowPart", *a)
 }

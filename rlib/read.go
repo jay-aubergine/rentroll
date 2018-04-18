@@ -450,14 +450,14 @@ func ReadRentableTypeDown(rows *sql.Rows, a *RentableTypeDown) error {
 
 // ReadRentable reads a full Rentable structure of data from the database based on the supplied Row pointer.
 func ReadRentable(row *sql.Row, a *Rentable) error {
-	err := row.Scan(&a.RID, &a.BID, &a.RentableName, &a.AssignmentTime, &a.MRStatus, &a.DtMRStart, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.RID, &a.BID, &a.RentableName, &a.AssignmentTime, &a.MRStatus, &a.DtMRStart, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadRentables reads a full Rentable structure of data from the database based on the supplied Rows pointer.
 func ReadRentables(rows *sql.Rows, a *Rentable) error {
-	return rows.Scan(&a.RID, &a.BID, &a.RentableName, &a.AssignmentTime, &a.MRStatus, &a.DtMRStart, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.RID, &a.BID, &a.RentableName, &a.AssignmentTime, &a.MRStatus, &a.DtMRStart, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadRentableType reads a full RentableType structure of data from the database based on the supplied Row pointer.
@@ -660,26 +660,26 @@ func ReadTaskLists(rows *sql.Rows, a *TaskList) error {
 
 // ReadTaskDescriptor reads a full TaskDescriptor structure from the database based on the supplied row object
 func ReadTaskDescriptor(row *sql.Row, a *TaskDescriptor) error {
-	err := row.Scan(&a.TDID, &a.BID, &a.TLDID, &a.Name, &a.Worker, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.TDID, &a.BID, &a.TLDID, &a.Name, &a.Worker, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadTaskDescriptors reads a full TaskDescriptor structure from the database based on the supplied rows
 func ReadTaskDescriptors(rows *sql.Rows, a *TaskDescriptor) error {
-	return rows.Scan(&a.TDID, &a.BID, &a.TLDID, &a.Name, &a.Worker, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.TDID, &a.BID, &a.TLDID, &a.Name, &a.Worker, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadTaskListDefinition reads a full TaskListDefinition structure from the database based on the supplied row object
 func ReadTaskListDefinition(row *sql.Row, a *TaskListDefinition) error {
-	err := row.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadTaskListDefinitions reads a full TaskListDefinition structure from the database based on the supplied rows
 func ReadTaskListDefinitions(rows *sql.Rows, a *TaskListDefinition) error {
-	return rows.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 //---------------------
@@ -739,4 +739,18 @@ func ReadVehicles(rows *sql.Rows, a *Vehicle) error {
 	return rows.Scan(&a.VID, &a.TCID, &a.BID, &a.VehicleType, &a.VehicleMake, &a.VehicleModel, &a.VehicleColor, &a.VehicleYear,
 		&a.LicensePlateState, &a.LicensePlateNumber, &a.ParkingPermitNumber, &a.DtStart, &a.DtStop,
 		&a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+}
+
+// ReadFlowPart reads a full FlowPart structure from the database based on the supplied row object
+func ReadFlowPart(row *sql.Row, a *FlowPart) error {
+	err := row.Scan(&a.FlowPartID, &a.BID, &a.Flow, &a.FlowID, &a.PartType,
+		&a.Data, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	SkipSQLNoRowsError(&err)
+	return err
+}
+
+// ReadFlowParts reads a full FlowPart structure from the database based on the supplied rows object
+func ReadFlowParts(rows *sql.Rows, a *FlowPart) error {
+	return rows.Scan(&a.FlowPartID, &a.BID, &a.Flow, &a.FlowID, &a.PartType,
+		&a.Data, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }

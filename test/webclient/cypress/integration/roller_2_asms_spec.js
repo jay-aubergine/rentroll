@@ -59,6 +59,7 @@ describe('AIR Roller UI Tests - Assessment Charges', function () {
         // If have date navigation bar than change from and to Date to get in between data
         if (testConfig.haveDateValue) {
             common.changeDate(testConfig.sidebarID, testConfig.fromDate, testConfig.toDate);
+            cy.wait(constants.WAIT_TIME);
         }
 
         // Check http status
@@ -177,7 +178,7 @@ describe('AIR Roller UI Tests - Assessment Charges', function () {
     * Button must be visible(Save, Save and Add Another etc.)
     * Asset closing the form
     ************************************************************/
-    it('Add new record form', function () {
+    it('Check default value of fields for new record form', function () {
         // ---------------------------------------
         // ----- Tests for add new record form ---
         // ---------------------------------------

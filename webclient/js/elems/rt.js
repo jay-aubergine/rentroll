@@ -1,10 +1,10 @@
 /*global
     w2ui, app, $, console, setToForm, form_dirty_alert, formRefreshCallBack, formRecDiffer,
     getFormSubmitData, w2confirm, delete_confirm_options, getBUDfromBID, getCurrentBusiness,
-    addDateNavToToolbar,
+    addDateNavToToolbar, setRTLayout, getRTInitRecord
 */
 "use strict";
-function getRTInitRecord(BID, BUD){
+window.getRTInitRecord = function (BID, BUD){
     var y = new Date();
     return {
         recid: 0,
@@ -22,9 +22,9 @@ function getRTInitRecord(BID, BUD){
         LastModBy: 0,
         FLAGS: 0,
     };
-}
+};
 
-function buildRentableTypeElements() {
+window.buildRentableTypeElements = function () {
 
     //------------------------------------------------------------------------
     //          rentable types Grid
@@ -561,7 +561,6 @@ function buildRentableTypeElements() {
             },
             reactivate: function() {
                 var rtF = w2ui.rtForm;
-
                 var rtG = w2ui.rtGrid;
                 var params = {cmd: 'reactivate', formname: rtF.name, ID: rtF.record.RTID };
                 var dat = JSON.stringify(params);
@@ -577,7 +576,7 @@ function buildRentableTypeElements() {
                     rtG.render();
                 })
                 .fail(function(/*data*/){
-                    rtF.error("Delete Payment failed.");
+                    rtF.error("Deactivate Rentable Type failed.");
                     return;
                 });
             },
@@ -615,9 +614,9 @@ function buildRentableTypeElements() {
                 toolbar: {
                     style: "height: 35px; background-color: #eee; border: 0px;",
                     items: [
-                        { id: 'btnNotes', type: 'button', icon: 'fa fa-sticky-note-o' },
+                        { id: 'btnNotes', type: 'button', icon: 'far fa-sticky-note' },
                         { id: 'bt3', type: 'spacer' },
-                        { id: 'btnClose', type: 'button', icon: 'fa fa-times' },
+                        { id: 'btnClose', type: 'button', icon: 'fas fa-times' },
                     ],
                     onClick: function (event) {
                         switch(event.target) {
@@ -840,9 +839,9 @@ function buildRentableTypeElements() {
             };
         }
     });
-}
+};
 
-function setRTLayout(BID, RTID) {
+window.setRTLayout = function (BID, RTID) {
     var rtF = w2ui.rtForm,
         rtG = w2ui.rtGrid,
         rmrG = w2ui.rmrGrid;
@@ -916,4 +915,4 @@ function setRTLayout(BID, RTID) {
         w2ui.rtDetailLayout.get("main").tabs.click("rtForm");
         w2ui.toplayout.show('right', true);
     }
-}
+};

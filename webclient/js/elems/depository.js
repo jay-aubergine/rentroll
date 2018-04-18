@@ -1,5 +1,8 @@
+/*global
+    getDepoInitRecord
+*/
 "use strict";
-function getDepoInitRecord(BID, BUD){
+window.getDepoInitRecord = function (BID, BUD){
     return {
         recid: 0,
         DEPID: 0,
@@ -9,9 +12,9 @@ function getDepoInitRecord(BID, BUD){
         Name: "",
         AccountNo: "",
     };
-}
+};
 
-function buildDepositoryElements() {
+window.buildDepositoryElements = function() {
 
     //------------------------------------------------------------------------
     //          depository Grid
@@ -175,9 +178,9 @@ function buildDepositoryElements() {
         ],
         toolbar: {
             items: [
-                { id: 'btnNotes', type: 'button', icon: 'fa fa-sticky-note-o' },
+                { id: 'btnNotes', type: 'button', icon: 'far fa-sticky-note' },
                 { id: 'bt3', type: 'spacer' },
-                { id: 'btnClose', type: 'button', icon: 'fa fa-times' },
+                { id: 'btnClose', type: 'button', icon: 'fas fa-times' },
             ],
             onClick: function (event) {
                 switch(event.target) {
@@ -308,4 +311,4 @@ function buildDepositoryElements() {
             getFormSubmitData(data.postData.record);
         },
     });
-}
+};

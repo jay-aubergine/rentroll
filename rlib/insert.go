@@ -1423,7 +1423,7 @@ func InsertRentable(ctx context.Context, a *Rentable) (int64, error) {
 	}
 
 	// transaction... context
-	fields := []interface{}{a.BID, a.RentableName, a.AssignmentTime, a.MRStatus, a.DtMRStart, a.CreateBy, a.LastModBy}
+	fields := []interface{}{a.BID, a.RentableName, a.AssignmentTime, a.MRStatus, a.DtMRStart, a.Comment, a.CreateBy, a.LastModBy}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertRentable)
 		defer stmt.Close()
@@ -2171,7 +2171,7 @@ func InsertSLStrings(ctx context.Context, a *StringList) (int64, error) {
 
 		// transaction... context
 		fields := []interface{}{a.BID, a.SLID, a.S[i].Value, a.CreateBy, a.S[i].LastModBy}
-		insertStmt.Exec(fields...)
+		_, err = insertStmt.Exec(fields...)
 
 		// After getting result...
 		if nil != err {
@@ -2312,7 +2312,7 @@ func InsertTaskDescriptor(ctx context.Context, a *TaskDescriptor) error {
 		return err
 	}
 	a.LastModBy = a.CreateBy
-	fields := []interface{}{a.BID, a.TLDID, a.Name, a.Worker, a.EpochDue, a.EpochPreDue, a.FLAGS, a.LastModBy, a.TDID}
+	fields := []interface{}{a.BID, a.TLDID, a.Name, a.Worker, a.EpochDue, a.EpochPreDue, a.FLAGS, a.Comment, a.LastModBy, a.TDID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertTaskDescriptor)
 		defer stmt.Close()
@@ -2343,7 +2343,7 @@ func InsertTaskListDefinition(ctx context.Context, a *TaskListDefinition) error 
 	}
 	a.LastModBy = a.CreateBy
 
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.LastModBy, a.TLDID}
+	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.Comment, a.LastModBy, a.TLDID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertTaskListDefinition)
 		defer stmt.Close()
@@ -2596,6 +2596,57 @@ func InsertVehicle(ctx context.Context, a *Vehicle) (int64, error) {
 		}
 	} else {
 		err = insertError(err, "Vehicle", *a)
+	}
+	return rid, err
+}
+
+// InsertFlowPart inserts the flow part with data provided in "a".
+func InsertFlowPart(ctx context.Context, a *FlowPart) (int64, error) {
+	var (
+		rid = int64(0)
+		err error
+		res sql.Result
+	)
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		sess, ok := SessionFromContext(ctx)
+		if !ok {
+			return rid, ErrSessionRequired
+		}
+
+		// user from session, CreateBy, LastModBy
+		a.CreateBy = sess.UID
+		a.LastModBy = a.CreateBy
+	}
+
+	// make sure that json is valid before inserting it in database
+	if !(IsFlowDataValidJSON(a.Data)) {
+		return rid, ErrFlowInvalidJSONData
+	}
+
+	// transaction... context
+
+	// as a.Data is type of json.RawMessage - convert it to byte stream so that it can be inserted
+	// in mysql `json` type column
+	fields := []interface{}{a.BID, a.Flow, a.FlowID, a.PartType, []byte(a.Data), a.CreateBy, a.LastModBy}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.InsertFlowPart)
+		defer stmt.Close()
+		res, err = stmt.Exec(fields...)
+	} else {
+		res, err = RRdb.Prepstmt.InsertFlowPart.Exec(fields...)
+	}
+
+	// After getting result...
+	if nil == err {
+		x, err := res.LastInsertId()
+		if err == nil {
+			rid = int64(x)
+			a.FlowPartID = rid
+		}
+	} else {
+		err = insertError(err, "FlowPart", *a)
 	}
 	return rid, err
 }

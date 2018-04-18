@@ -14,21 +14,69 @@ type SearchTask struct {
 	Recid       int64 `json:"recid"`
 	TID         int64
 	BID         int64
-	TLID        int64     // the TaskList to which this task belongs
-	Name        string    // Task text
-	Worker      string    // Name of the associated work function
-	DtDue       time.Time // Task Due Date
-	DtPreDue    time.Time // Pre Completion due date
-	DtDone      time.Time // Task completion Date
-	DtPreDone   time.Time // Task Pre Completion Date
-	FLAGS       int64
-	DoneUID     int64     // user who marked task as done
-	PreDoneUID  int64     // user who marked task as predone
-	Comment     string    // any user comments
-	LastModTime time.Time // when was this record last written
-	LastModBy   int64     // employee UID (from phonebook) that modified it
-	CreateTS    time.Time // when was this record created
-	CreateBy    int64     // employee UID (from phonebook) that created it
+	TLID        int64             // the TaskList to which this task belongs
+	Name        string            // Task text
+	Worker      string            // Name of the associated work function
+	DtDue       rlib.JSONDate     // Task Due Date
+	DtPreDue    rlib.JSONDate     // Pre Completion due date
+	DtDone      rlib.JSONDate     // Task completion Date
+	DtPreDone   rlib.JSONDate     // Task Pre Completion Date
+	FLAGS       int64             // special circumstance indicators
+	DoneUID     int64             // user who marked task as done
+	PreDoneUID  int64             // user who marked task as predone
+	Comment     string            // any user comments
+	LastModTime rlib.JSONDateTime // when was this record last written
+	LastModBy   int64             // employee UID (from phonebook) that modified it
+	CreateTS    rlib.JSONDateTime // when was this record created
+	CreateBy    int64             // employee UID (from phonebook) that created it
+}
+
+// FormTask holds the task definition for a task form
+type FormTask struct {
+	Recid        int64 `json:"recid"`
+	TID          int64
+	BID          int64
+	TLID         int64             // the TaskList to which this task belongs
+	Name         string            // Task text
+	Worker       string            // Name of the associated work function
+	DtDue        rlib.JSONDateTime // Task Due Date
+	DtPreDue     rlib.JSONDateTime // Pre Completion due date
+	DtDone       rlib.JSONDateTime // Task completion Date
+	DtPreDone    rlib.JSONDateTime // Task Pre Completion Date
+	ChkDtDue     bool              // enable disable
+	ChkDtPreDue  bool              // enable/disable
+	ChkDtDone    bool              // actual date/time
+	ChkDtPreDone bool              // actual date/time
+	FLAGS        int64             // special circumstance indicators
+	DoneUID      int64             // user who marked task as done
+	PreDoneUID   int64             // user who marked task as predone
+	Comment      string            // any user comments
+	LastModTime  rlib.JSONDateTime // when was this record last written
+	LastModBy    int64             // employee UID (from phonebook) that modified it
+	CreateTS     rlib.JSONDateTime // when was this record created
+	CreateBy     int64             // employee UID (from phonebook) that created it
+}
+
+// FormSaveTask holds the task definition for a task form
+type FormSaveTask struct {
+	Recid        int64 `json:"recid"`
+	TID          int64
+	BID          int64
+	TLID         int64             // the TaskList to which this task belongs
+	Name         string            // Task text
+	Worker       string            // Name of the associated work function
+	DtDue        rlib.JSONDateTime // Task Due Date
+	DtPreDue     rlib.JSONDateTime // Pre Completion due date
+	DtDone       rlib.JSONDateTime // Task completion Date
+	DtPreDone    rlib.JSONDateTime // Task Pre Completion Date
+	ChkDtDue     bool              // enable disable
+	ChkDtPreDue  bool              // enable/disable
+	ChkDtDone    bool              // actual date/time
+	ChkDtPreDone bool              // actual date/time
+	FLAGS        int64             // special circumstance indicators
+	DoneUID      int64             // user who marked task as done
+	PreDoneUID   int64             // user who marked task as predone
+	Comment      string            // any user comments
 }
 
 // SearchTaskResponse holds the task list definition list
@@ -40,16 +88,16 @@ type SearchTaskResponse struct {
 
 // SaveTaskInput is the input data format for a Save command
 type SaveTaskInput struct {
-	Recid    int64      `json:"recid"`
-	Status   string     `json:"status"`
-	FormName string     `json:"name"`
-	Record   SearchTask `json:"record"`
+	Recid    int64        `json:"recid"`
+	Status   string       `json:"status"`
+	FormName string       `json:"name"`
+	Record   FormSaveTask `json:"record"`
 }
 
 // GetTaskResponse is the response to a GetTask request
 type GetTaskResponse struct {
-	Status string     `json:"status"`
-	Record SearchTask `json:"record"`
+	Status string   `json:"status"`
+	Record FormTask `json:"record"`
 }
 
 // SvcSearchTaskHandler returns the Tasks associated with the supplied
@@ -172,6 +220,8 @@ func saveTask(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	funcname := "saveTask"
 	var foo SaveTaskInput
 	var err error
+	var blank rlib.TaskList
+	var now = time.Now()
 
 	rlib.Console("Entered %s\n", funcname)
 	rlib.Console("record data = %s\n", d.data)
@@ -204,10 +254,63 @@ func saveTask(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	//-------------------------------------------------------
 	rlib.Console("a.TID = %d, d.ID = %d\n", a.TID, d.ID)
 	if a.TID == 0 && d.ID == 0 {
-		rlib.Console("Inserting new Task\n")
+		//-------------------------------------------------------
+		// Chk values dictate the dates.
+		//-------------------------------------------------------
+		if !foo.Record.ChkDtDue {
+			a.DtDue = blank.DtDue
+		}
+		if !foo.Record.ChkDtPreDue {
+			a.DtPreDue = blank.DtPreDue
+		}
+		if foo.Record.ChkDtPreDone {
+			a.DtPreDone = now
+		}
+		if foo.Record.ChkDtDone {
+			a.DtDone = now
+		}
+
+		if foo.Record.TLID == 0 {
+			e := fmt.Errorf("%s: Could not create Task because TaskList id (%d) does not exist", funcname, foo.Record.TLID)
+			SvcErrorReturn(w, e, funcname)
+			return
+		}
+		tl, err := rlib.GetTaskList(r.Context(), foo.Record.TLID)
+		if err != nil {
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+		if tl.TLID == 0 {
+			e := fmt.Errorf("%s: Could not create TaskList because definition id (%d) does not exist", funcname, foo.Record.TLID)
+			SvcErrorReturn(w, e, funcname)
+			return
+		}
 		err = rlib.InsertTask(r.Context(), &a) // This is a new record
 	} else {
-		rlib.Console("Updating existing Task: %d\n", a.TID) // update existing record
+		b, err := rlib.GetTask(r.Context(), a.TID)
+		if err != nil {
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+		//------------------------------------------------------------------
+		// Due and PreDue dates are not changable.  If those
+		// need to be changed, you'll need to change the definition.
+		// If the PreDue date changes from unset to set, record the
+		// datetime.  If it changes from set to unset, reset the datetime.
+		// Identical operations for Due date.
+		//------------------------------------------------------------------
+		if b.DtPreDone.Year() > 1999 && !foo.Record.ChkDtPreDone { // current db DtPreDone is set, but user unset it
+			a.DtPreDone = rlib.TIME0
+		}
+		if b.DtPreDone.Year() <= 1999 && foo.Record.ChkDtPreDone { // current db DtPreDone is unset, but user set it
+			a.DtPreDone = now
+		}
+		if b.DtDone.Year() > 1999 && !foo.Record.ChkDtDone { // current db DtDone is set, but user unset it
+			a.DtDone = rlib.TIME0
+		}
+		if b.DtDone.Year() <= 1999 && foo.Record.ChkDtDone { // current db DtPreDone is unset, but user set it
+			a.DtDone = now
+		}
 		err = rlib.UpdateTask(r.Context(), &a)
 	}
 
@@ -244,7 +347,7 @@ func getTask(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		return
 	}
 	if a.TID > 0 {
-		var gg SearchTask
+		var gg FormTask
 		rlib.MigrateStructVals(&a, &gg)
 		gg.Recid = gg.TID
 		g.Record = gg

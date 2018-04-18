@@ -3,6 +3,7 @@ package rlib
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"extres"
 	"fmt"
 	"strings"
@@ -144,17 +145,18 @@ const (
 	// Use these values:	Mon Jan 2 15:04:05 MST 2006
 	// const RRDATEFMT = "02-Jan-2006 3:04PM MST"
 	// const RRDATEFMT = "01/02/06 3:04PM MST"
-	RRDATEFMT        = "01/02/06"
-	RRDATEFMT2       = "1/2/06"
-	RRDATEFMT3       = "1/2/2006"
-	RRDATEFMT4       = "01/02/2006"
-	RRDATEINPFMT     = "2006-01-02"
-	RRDATEFMTSQL     = RRDATEINPFMT
-	RRDATETIMEINPFMT = "2006-01-02 15:04:00 MST"
-	RRDATETIMEFMT    = "2006-01-02T15:04:00Z"
-	RRDATETIMEJSFMT  = "2006-01-02T15:04:00.000Z"
-	RRDATEREPORTFMT  = "Jan 2, 2006"
-	RRDATERECEIPTFMT = "January 2, 2006"
+	RRDATEFMT         = "01/02/06"
+	RRDATEFMT2        = "1/2/06"
+	RRDATEFMT3        = "1/2/2006"
+	RRDATEFMT4        = "01/02/2006"
+	RRDATEINPFMT      = "2006-01-02"
+	RRDATEFMTSQL      = RRDATEINPFMT
+	RRJSUTCDATETIME   = "Mon, 02 Jan 2006 15:04:05 MST"
+	RRDATETIMEINPFMT  = "2006-01-02 15:04:00 MST"
+	RRDATETIMEFMT     = "2006-01-02T15:04:00Z"
+	RRDATETIMEW2UIFMT = "1/2/2006 3:04 pm"
+	RRDATEREPORTFMT   = "Jan 2, 2006"
+	RRDATERECEIPTFMT  = "January 2, 2006"
 )
 
 // ARTypesList is the readable, csv loadable names for the different rule types
@@ -231,6 +233,7 @@ type TaskDescriptor struct {
 	EpochDue    time.Time
 	EpochPreDue time.Time
 	FLAGS       int64
+	Comment     string    //
 	LastModTime time.Time // when was this record last written
 	LastModBy   int64     // employee UID (from phonebook) that modified it
 	CreateTS    time.Time // when was this record created
@@ -247,6 +250,7 @@ type TaskListDefinition struct {
 	EpochDue    time.Time // when task list is due
 	EpochPreDue time.Time // when task list pre-work is due
 	FLAGS       int64     // 1<<0 0 means it is still active, 1 means it is no longer active
+	Comment     string    //
 	CreateTS    time.Time // when was this record created
 	CreateBy    int64     // employee UID (from phonebook) that created it
 	LastModTime time.Time // when was this record last written
@@ -1162,10 +1166,11 @@ type Rentable struct {
 	AssignmentTime int64             // can we pre-assign or assign only at commencement
 	MRStatus       int64             // Make Ready Status - current value as of DtMR, when this value changes it goes into a MRHistory record
 	DtMRStart      time.Time         // Time that MRStatus was set
-	LastModTime    time.Time         // time of last update to the db record
-	LastModBy      int64             // who made the update (Phonebook UID)
+	Comment        string            // for notes such as Alarm codes and other things
 	RT             []RentableTypeRef // the list of RTIDs and timestamps for this Rentable
 	//-- RentalPeriodDefault int64          // 0 =unset, 1 = short term, 2=longterm
+	LastModTime    time.Time         // time of last update to the db record
+	LastModBy      int64             // who made the update (Phonebook UID)
 	CreateTS time.Time // when was this record created
 	CreateBy int64     // employee UID (from phonebook) that created it
 }
@@ -1365,6 +1370,20 @@ type GLAccount struct {
 	// RARequired  int64     // 0 = during rental period, 1 = valid prior or during, 2 = valid during or after, 3 = valid before, during, and after
 }
 
+// FlowPart is a structure for to store temporarity flow data latest one
+type FlowPart struct {
+	FlowPartID  int64           // primary auto increment key
+	BID         int64           // Business unit associated with this FlowPart
+	Flow        string          // RA="Rental Agreement Flow" etc...
+	FlowID      string          // Unique ID across all relavant data for this flow -- UnixNano(32 bits) + User ID
+	PartType    int             // flow part type ("ASM","PET","VEHICLE")
+	Data        json.RawMessage // json data in mysql
+	LastModTime time.Time       // last modified time
+	LastModBy   int64           // last modified by whom
+	CreateTS    time.Time       // created time
+	CreateBy    int64           // created by whom
+}
+
 // RRprepSQL is a collection of prepared sql statements for the RentRoll db
 type RRprepSQL struct {
 	CountBusinessCustomAttributes           *sql.Stmt
@@ -1428,6 +1447,8 @@ type RRprepSQL struct {
 	DeleteTransactant                       *sql.Stmt
 	DeleteUser                              *sql.Stmt
 	DeleteVehicle                           *sql.Stmt
+	DeleteFlowPart                          *sql.Stmt
+	DeleteFlowPartsByFlowID                 *sql.Stmt
 	FindAgreementByRentable                 *sql.Stmt
 	FindTCIDByNote                          *sql.Stmt
 	FindTransactantByPhoneOrEmail           *sql.Stmt
@@ -1595,6 +1616,11 @@ type RRprepSQL struct {
 	GetVehiclesByBID                        *sql.Stmt
 	GetVehiclesByLicensePlate               *sql.Stmt
 	GetVehiclesByTransactant                *sql.Stmt
+	GetFlowIDsByUser                        *sql.Stmt
+	GetFlowPart                             *sql.Stmt
+	GetFlowPartByPartType                   *sql.Stmt
+	GetFlowPartsByFlowID                    *sql.Stmt
+	GetFlowPartsByFlow                      *sql.Stmt
 	InsertAR                                *sql.Stmt
 	InsertAssessment                        *sql.Stmt
 	InsertAssessmentType                    *sql.Stmt
@@ -1649,6 +1675,7 @@ type RRprepSQL struct {
 	InsertTransactant                       *sql.Stmt
 	InsertUser                              *sql.Stmt
 	InsertVehicle                           *sql.Stmt
+	InsertFlowPart                          *sql.Stmt
 	ReadRatePlan                            *sql.Stmt
 	ReadRatePlanRef                         *sql.Stmt
 	UIRAGrid                                *sql.Stmt
@@ -1695,6 +1722,7 @@ type RRprepSQL struct {
 	UpdateTransactant                       *sql.Stmt
 	UpdateUser                              *sql.Stmt
 	UpdateVehicle                           *sql.Stmt
+	UpdateFlowPart                          *sql.Stmt
 	GetAssessmentInstancesByParent          *sql.Stmt
 	GetJournalAllocationsByASMID            *sql.Stmt
 	GetRentableTypeRefs                     *sql.Stmt

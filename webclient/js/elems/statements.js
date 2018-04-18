@@ -1,10 +1,10 @@
 "use strict";
 /*global
     GridMoneyFormat, number_format, w2ui, $, app, console,
-    form_dirty_alert, addDateNavToToolbar
+    form_dirty_alert, addDateNavToToolbar, setToStmtForm, renderStmtReversal
 */
 
-function buildStatementsElements() {
+window.buildStatementsElements = function () {
     //------------------------------------------------------------------------
     //          stmtGrid  -  THE LIST OF ALL RENTAL AGREEMENTS
     //------------------------------------------------------------------------
@@ -72,12 +72,12 @@ function buildStatementsElements() {
         formURL: '/webclient/html/formstmtdet.html',
         toolbar: {
             items: [
-                { id: 'btnNotes', type: 'button', icon: 'fa fa-sticky-note-o' },
+                { id: 'btnNotes', type: 'button', icon: 'far fa-sticky-note' },
                 { type: 'break' },
-                { type: 'button', id: 'csvexport', icon: 'fa fa-table', tooltip: 'export to CSV' },
-                { type: 'button', id: 'pdfexport', icon: 'fa fa-file-pdf-o', tooltip: 'export to PDF' },
+                { type: 'button', id: 'csvexport', icon: 'fas fa-table', tooltip: 'export to CSV' },
+                { type: 'button', id: 'pdfexport', icon: 'far fa-file-pdf', tooltip: 'export to PDF' },
                 { id: 'bt3', type: 'spacer' },
-                { id: 'btnClose', type: 'button', icon: 'fa fa-times' },
+                { id: 'btnClose', type: 'button', icon: 'fas fa-times' },
             ],
             onClick: function (event) {
                 var r = w2ui.stmtDetailForm.record;
@@ -222,20 +222,19 @@ function buildStatementsElements() {
             { type: 'right',   size: 0,     hidden: true }
         ]
     });
-}
+};
 
-function renderStmtReversal(record /*, index, col_index*/) {
+window.renderStmtReversal = function (record /*, index, col_index*/) {
     if (typeof record === "undefined") {
         return;
     }
     if ( record.Reverse ) { // if reversed then
-        return '<i class="fa fa-exclamation-triangle" title="reversed" aria-hidden="true" style="color: #FFA500;"></i>';
+        return '<i class="fas fa-exclamation-triangle" title="reversed" aria-hidden="true" style="color: #FFA500;"></i>';
     }
     return '';
-}
+};
 
-
-function stmtRenderHandler(record,index,col_index,amt,bRemoveZero) {
+window.stmtRenderHandler = function (record,index,col_index,amt,bRemoveZero) {
     if (record.Reverse && col_index == 8) { return; }  // don't update balance if it's a reversal
     if (Math.abs(amt) < 0.001) {
         if (record.Descr.includes("Closing Balance") || !bRemoveZero) {
@@ -243,7 +242,7 @@ function stmtRenderHandler(record,index,col_index,amt,bRemoveZero) {
         }
     }
     return GridMoneyFormat(amt);
-}
+};
 
 //-----------------------------------------------------------------------------
 // setToStmtForm -  enable the Statement form in toplayout.  Also, set
@@ -253,7 +252,7 @@ function stmtRenderHandler(record,index,col_index,amt,bRemoveZero) {
 //  raid = Rental Agreement ID
 // d1,d2 = date range to use
 //-----------------------------------------------------------------------------
-function setToStmtForm(bid, raid, d1,d2) {
+window.setToStmtForm = function (bid, raid, d1,d2) {
     if (raid > 0) {
         w2ui.stmtDetailGrid.url = '/v1/stmtdetail/' + bid + '/' + raid;
         w2ui.stmtDetailForm.url = '/v1/stmtinfo/' + bid + '/' + raid;
@@ -261,16 +260,35 @@ function setToStmtForm(bid, raid, d1,d2) {
             searchDtStart: d1,
             searchDtStop: d2,
         };
-        w2ui.stmtDetailForm.request();
 
-        w2ui.toplayout.content('right', w2ui.stmtLayout);
-        w2ui.toplayout.show('right', true);
-        w2ui.toplayout.sizeTo('right', 850);
-        w2ui.toplayout.render();
-        app.new_form_rec = false;  // mark as record exists
-        app.form_is_dirty = false; // mark as no changes yet
+        // ==================
+        // INTERNAL FUNCTION
+        // ==================
+        var showForm = function() {
+            w2ui.toplayout.content('right', w2ui.stmtLayout);
+            w2ui.toplayout.show('right', true);
+            w2ui.toplayout.sizeTo('right', 850);
+            w2ui.toplayout.render();
+            app.new_form_rec = false;  // mark as record exists
+            app.form_is_dirty = false; // mark as no changes yet
+            // NOTE: remove any error tags bound to field from previous form
+            $().w2tag();
+            // SHOW the right panel now
+            w2ui.toplayout.show('right', true);
+        };
+
+        w2ui.stmtDetailForm.request(function(event) {
+            if (event.status === "success") {
+                showForm();
+                return true;
+            } else {
+                showForm();
+                w2ui.stmtDetailForm.message("Could not get form data from server...!!");
+                return false;
+            }
+        });
     }
-}
+};
 
 //-----------------------------------------------------------------------------
 // createStmtForm - add the grid and form to the statement layout.  I'm not
@@ -278,7 +296,7 @@ function setToStmtForm(bid, raid, d1,d2) {
 //      into the layout when it gets created, they do not work correctly.
 // @params
 //-----------------------------------------------------------------------------
-function createStmtForm() {
+window.createStmtForm = function () {
     w2ui.stmtLayout.content('top',w2ui.stmtDetailForm);
     w2ui.stmtLayout.content('main',w2ui.stmtDetailGrid);
-}
+};

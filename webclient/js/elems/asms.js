@@ -2,11 +2,13 @@
     popupRentalAgrPicker, $, console, w2ui, w2uiDateControlString, app,
     getCurrentBusiness, getBUDfromBID, w2popup, w2utils, rafinder, get2XReversalSymbolHTML,
     getGridReversalSymbolHTML, setDefaultFormFieldAsPreviousRecord, isDatePriorToCurrentDate,
-    form_dirty_alert,setToForm,addDateNavToToolbar,getCurrentBID,formRefreshCallBack,
+    form_dirty_alert,setToForm,addDateNavToToolbar,getCurrentBID,formRefreshCallBack, renderReversalIcon,
+    getBusinessAssessmentRules, getAsmsInitRecord, popupAsmRevMode, asmFormRASelect
+
 */
 "use strict";
 
-function getAsmsInitRecord(BID, BUD, previousFormRecord){
+window.getAsmsInitRecord = function (BID, BUD, previousFormRecord){
     var y = new Date();
     var y1 = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
 
@@ -60,7 +62,7 @@ function getAsmsInitRecord(BID, BUD, previousFormRecord){
     }
 
     return defaultFormData;
-}
+};
 
 //-----------------------------------------------------------------------------
 // getBusinessAssessmentRules - return the promise object of request to get latest
@@ -70,7 +72,7 @@ function getAsmsInitRecord(BID, BUD, previousFormRecord){
 //          - BUD : Business Unit Designation
 // @return  - promise object from $.get
 //-----------------------------------------------------------------------------
-function getBusinessAssessmentRules(BID, BUD) {
+window.getBusinessAssessmentRules = function (BID, BUD) {
     // if not BUD in app.AssessmentRules then initialize it with blank list
     if (!(BUD in app.AssessmentRules)) {
         app.AssessmentRules[BUD] = [];
@@ -83,9 +85,9 @@ function getBusinessAssessmentRules(BID, BUD) {
                 app.AssessmentRules[BUD] = data[BUD];
             }
         });
-}
+};
 
-function renderReversalIcon(record /*, index, col_index*/) {
+window.renderReversalIcon = function (record /*, index, col_index*/) {
     if (typeof record === "undefined") {
         return;
     }
@@ -93,9 +95,9 @@ function renderReversalIcon(record /*, index, col_index*/) {
         return getGridReversalSymbolHTML();
     }
     return '';
-}
+};
 
-function buildAssessmentElements() {
+window.buildAssessmentElements = function () {
     //------------------------------------------------------------------------
     //          asmsGrid
     //------------------------------------------------------------------------
@@ -131,13 +133,13 @@ function buildAssessmentElements() {
                                 record.w2ui = {class:""};
                             }
                             record.w2ui.class = "asmEpochRow";
-                            return '<i class="fa fa-refresh" title="epoch" aria-hidden="true"></i>';
+                            return '<i class="fas fa-sync-alt" title="epoch" aria-hidden="true"></i>';
                         } else if (record.RentCycle) { // if recurring assessment then put refresh icon
                             if (record.w2ui === undefined) {
                                 record.w2ui = {class:""};
                             }
                             record.w2ui.class = "asmInstRow";
-                            return '<i class="fa fa-refresh" title="recurring" aria-hidden="true"></i>';
+                            return '<i class="fas fa-sync-alt" title="recurring" aria-hidden="true"></i>';
                         }
                         return ''; // if non-recur assessment then do nothing
                     },
@@ -282,7 +284,7 @@ function buildAssessmentElements() {
             { field: 'ARID',          type: 'list',     required: true, options: { items: app.AssessmentRules }},
             { field: 'recid',         type: 'int',      required: false },
             { field: 'ASMID',         type: 'int',      required: false },
-            { field: 'BID',           type: 'int',     required: true },
+            { field: 'BID',           type: 'int',      required: true },
             { field: 'BUD',           type: 'list',     required: true, options: {items: app.businesses} },
             { field: 'PASMID',        type: 'w2int',    required: false },
             { field: 'Rentable',      type: 'text',     required: false },
@@ -308,9 +310,9 @@ function buildAssessmentElements() {
         ],
         toolbar: {
             items: [
-                { id: 'btnNotes', type: 'button', icon: 'fa fa-sticky-note-o' },
+                { id: 'btnNotes', type: 'button', icon: 'far fa-sticky-note' },
                 { id: 'bt3', type: 'spacer' },
-                { id: 'btnClose', type: 'button', icon: 'fa fa-times' },
+                { id: 'btnClose', type: 'button', icon: 'fas fa-times' },
             ],
             onClick: function (event) {
                 switch(event.target) {
@@ -441,7 +443,7 @@ function buildAssessmentElements() {
                 }
 
                 // Assessment Info at the top of form in white box
-                var info = '<p><i class="fa fa-refresh" style="margin-right: 5px;"></i> Repeating Assessment Series Definition</p>'.format(r.ASMID);
+                var info = '<p><i class="fas fa-sync-alt" style="margin-right: 5px;"></i> Repeating Assessment Series Definition</p>'.format(r.ASMID);
                 $(f.box).find("#AssessmentInfo").html(info);
 
                 // FLAG reports
@@ -607,9 +609,9 @@ function buildAssessmentElements() {
         ],
         toolbar: {
             items: [
-                { id: 'btnNotes', type: 'button', icon: 'fa fa-sticky-note-o' },
+                { id: 'btnNotes', type: 'button', icon: 'far fa-sticky-note' },
                 { id: 'bt3', type: 'spacer' },
-                { id: 'btnClose', type: 'button', icon: 'fa fa-times' },
+                { id: 'btnClose', type: 'button', icon: 'fas fa-times' },
             ],
             onClick: function (event) {
                 switch(event.target) {
@@ -953,21 +955,21 @@ function buildAssessmentElements() {
             },
         },
     });
-}
+};
 
-function asmOpenRASelect() {
+window.asmOpenRASelect = function () {
     rafinder.cb = asmFormRASelect;
     popupRentalAgrPicker();
-}
+};
 
-function asmFormRASelect() {
+window.asmFormRASelect = function () {
     w2ui.asmEpochForm.record.RAID = w2ui.rentalAgrPicker.record.RAID;
     w2ui.asmEpochForm.record.Rentable = w2ui.rentalAgrPicker.record.RentableName.text;
     w2ui.asmEpochForm.record.RID = w2ui.rentalAgrPicker.record.RentableName.id;
     w2ui.asmEpochForm.refresh();
-}
+};
 
-function popupAsmRevMode(mode,form) {
+window.popupAsmRevMode = function (mode,form) {
     w2ui.reverseMode.record.ReverseMode = mode;
     app.AsmtModeCallerForm = form;
     $().w2popup('open', {
@@ -990,5 +992,5 @@ function popupAsmRevMode(mode,form) {
             };
         }
     });
-}
+};
 
