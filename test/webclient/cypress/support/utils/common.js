@@ -823,6 +823,7 @@ export function printReceiptUITest() {
     cy.get(selectors.getClosePopupButtonSelector()).click();
 }
 
+// test for Saving a new Record in Form
 export function testSaveNewRecord(testConfig) {
     // record list in w2ui form
     let getW2UIFormRecords;
@@ -883,7 +884,7 @@ export function testSaveNewRecord(testConfig) {
                     }
                     else if($list[index].getAttribute("type") === "checkbox") {
 
-                        // Get dropdown field, check visiblity and click on it
+                        // Get checkbox, check visiblity and click on it
                         cy.get(selectors.getFieldSelector(fieldID))
                             .should('be.visible')
                             .should('not.be.checked').click();
