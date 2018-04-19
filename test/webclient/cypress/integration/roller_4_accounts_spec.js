@@ -111,46 +111,46 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
     * Expect:
     * Cell value must be same as record's field value from API Response.
     ***********************/
-    // it('Grid Records', function () {
-    //     common.testGridRecords(recordsAPIResponse, noRecordsInAPIResponse, testConfig);
-    // });
+    it('Grid Records', function () {
+        common.testGridRecords(recordsAPIResponse, noRecordsInAPIResponse, testConfig);
+    });
 
-    // /*******************************
-    // * Click on first record of grid
-    // *
-    // * Expect:
-    // * Each field must have value set same as detail record api response.
-    // * Button must be visible(Save, Cancel etc.)
-    // *
-    // *
-    // * Close the form
-    // ********************************/
-    // it('Record Detail Form', function () {
-    //     // ----------------------------------
-    //     // -- Tests for detail record form --
-    //     // ----------------------------------
-    //     // Params:
-    //     // recordsAPIResponse: list of record from the api response,
-    //     // testConfig: configuration for running tests
-    //     common.testRecordDetailForm(recordsAPIResponse, testConfig);
+    /*******************************
+    * Click on first record of grid
+    *
+    * Expect:
+    * Each field must have value set same as detail record api response.
+    * Button must be visible(Save, Cancel etc.)
+    *
+    *
+    * Close the form
+    ********************************/
+    it('Record Detail Form', function () {
+        // ----------------------------------
+        // -- Tests for detail record form --
+        // ----------------------------------
+        // Params:
+        // recordsAPIResponse: list of record from the api response,
+        // testConfig: configuration for running tests
+        common.testRecordDetailForm(recordsAPIResponse, testConfig);
 
-    //     // -- Close the form. And assert that form isn't visible. --
-    //     common.closeFormTests(selectors.getFormSelector(testConfig.form));
-    // });
+        // -- Close the form. And assert that form isn't visible. --
+        common.closeFormTests(selectors.getFormSelector(testConfig.form));
+    });
 
-    // /************************************************************
-    // * Click Add new in toolbar
-    // *
-    // * Expect:
-    // * Each field must set to be its default value
-    // * Button must be visible(Save, Save and Add Another etc.)
-    // ************************************************************/
-    // it('Check default value of fields for new record form', function () {
-    //     // ---------------------------------------
-    //     // ----- Tests for add new record form ---
-    //     // ---------------------------------------
-    //     common.testAddNewRecordForm(testConfig);
-    // });
+    /************************************************************
+    * Click Add new in toolbar
+    *
+    * Expect:
+    * Each field must set to be its default value
+    * Button must be visible(Save, Save and Add Another etc.)
+    ************************************************************/
+    it('Check default value of fields for new record form', function () {
+        // ---------------------------------------
+        // ----- Tests for add new record form ---
+        // ---------------------------------------
+        common.testAddNewRecordForm(testConfig);
+    });
 
     /**************************************************
      * Click Add new bitton in toolbar
@@ -192,7 +192,6 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
         let field;
         let fieldValue;
 
-        // testConfig.skipFields = ['BUD','PLID','Status','AcctType'];
         testConfig.skipFields = ['BUD'];
         
         cy.fixture('chartOfAccounts.json').then((json) => {
@@ -204,7 +203,7 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
                     // get id of the field
                     fieldID = $el.context.id;
 
-                    // cy.log(getW2UIFormRecords);
+                    cy.log(getW2UIFormRecords);
 
                     // get default value of field
                     fieldValue = json.record[fieldID];
@@ -212,18 +211,19 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
                     // get field from w2ui form field list
                     field = getW2UIFormFields.find(fieldList => fieldList.field === fieldID);
 
-                    cy.log($list[index]);
-
                     // Check field visibility and match default value from w2ui
                     if (!common.isInArray(fieldID, testConfig.skipFields)) {
+
                         // Check if type of input field is list
                         if($list[index].getAttribute("type") === "list") {
+
                             // Get dropdown field, check visiblity and click on it
                             cy.get(selectors.getFieldSelector(fieldID)).parent().should('be.visible').click();
                             // Get dropdown value, check visiblity and click on it
                             cy.get(selectors.getDropDownValueFieldSelector(fieldValue)).should('be.visible').click();
                         }
                         else {
+
                             // Check visibility and match the default value of the fields.
                             cy.get(selectors.getFieldSelector(fieldID))
                                 .should('be.visible').type(fieldValue)
@@ -232,7 +232,6 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
                     }
                 });
         });
-
 
         // Route request for adding new record
         cy.server();
