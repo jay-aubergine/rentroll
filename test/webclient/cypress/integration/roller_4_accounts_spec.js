@@ -192,7 +192,8 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
         let field;
         let fieldValue;
 
-        testConfig.skipFields = ['BUD','PLID','Status','AcctType'];
+        // testConfig.skipFields = ['BUD','PLID','Status','AcctType'];
+        testConfig.skipFields = ['BUD'];
         
         cy.fixture('chartOfAccounts.json').then((json) => {
 
@@ -203,7 +204,7 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
                     // get id of the field
                     fieldID = $el.context.id;
 
-                    cy.log(getW2UIFormRecords);
+                    // cy.log(getW2UIFormRecords);
 
                     // get default value of field
                     fieldValue = json.record[fieldID];
@@ -211,34 +212,23 @@ describe('AIR Roller UI Tests - Chart of accounts', function () {
                     // get field from w2ui form field list
                     field = getW2UIFormFields.find(fieldList => fieldList.field === fieldID);
 
+                    cy.log($list[index]);
+
                     // Check field visibility and match default value from w2ui
                     if (!common.isInArray(fieldID, testConfig.skipFields)) {
-
-                        // Check visibility and match the default value of the fields.
-                        cy.get(selectors.getFieldSelector(fieldID))
-                            .should('be.visible').type(fieldValue)
-                            .should('have.value', fieldValue);
-                    }
-
-                    // Check visiblity and select value for field with type list
-                    if (fieldID === "PLID") {
-                        cy.get('input[id=PLID]').parent().should('be.visible').click();
-
-                        cy.get('#w2ui-overlay tr[index=1]').should('be.visible').click();
-                    }
-
-                    // Check visiblity and select value for field with type list
-                    if (fieldID === "Status") {
-                        cy.get('input[id=Status]').parent().should('be.visible').click();
-
-                        cy.get('#w2ui-overlay tr[index=2]').should('be.visible').click();
-                    }
-                    
-                    // Check visiblity and select value for field with type list
-                    if (fieldID === "AcctType") {
-                        cy.get('input[id=AcctType]').parent().should('be.visible').click();
-
-                        cy.get('#w2ui-overlay tr[index=0]').should('be.visible').click( );
+                        // Check if type of input field is list
+                        if($list[index].getAttribute("type") === "list") {
+                            // Get dropdown field, check visiblity and click on it
+                            cy.get(selectors.getFieldSelector(fieldID)).parent().should('be.visible').click();
+                            // Get dropdown value, check visiblity and click on it
+                            cy.get(selectors.getDropDownValueFieldSelector(fieldValue)).should('be.visible').click();
+                        }
+                        else {
+                            // Check visibility and match the default value of the fields.
+                            cy.get(selectors.getFieldSelector(fieldID))
+                                .should('be.visible').type(fieldValue)
+                                .should('have.value', fieldValue);
+                        }
                     }
                 });
         });
