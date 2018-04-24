@@ -62,10 +62,18 @@ func CreateRentableSpecialtyRefsCSV(ctx context.Context, sa []string, lineno int
 	if len(des) > 0 {
 		b, err = rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s): %s", des, err.Error())
+			columnNo := BUD + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
 		}
 		if b.BID < 1 {
-			return CsvErrorSensitivity, fmt.Errorf("CreateRentalSpecialtyType: rlib.Business named %s not found", sa[0])
+			errMsg := fmt.Sprintf("CreateRentalSpecialtyType: rlib.Business named %s not found", sa[0])
+			columnNo := BUD + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("CreateRentalSpecialtyType: rlib.Business named %s not found", sa[0])
 		}
 	}
 	a.BID = b.BID
@@ -78,7 +86,11 @@ func CreateRentableSpecialtyRefsCSV(ctx context.Context, sa []string, lineno int
 		// fmt.Printf("Searching: rentable name = %s, BID = %d\n", s, b.BID)
 		r, err = rlib.GetRentableByName(ctx, s, b.BID)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error loading rlib.Rentable named: %s in Business %d.  Error = %v", funcname, lineno, s, b.BID, err)
+			errMsg := fmt.Sprintf("Error loading rlib.Rentable named: %s in Business %d.  Error = %v", s, b.BID, err)
+			columnNo := RID + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - Error loading rlib.Rentable named: %s in Business %d.  Error = %v", funcname, lineno, s, b.BID, err)
 		}
 	}
 	a.RID = r.RID
@@ -89,24 +101,50 @@ func CreateRentableSpecialtyRefsCSV(ctx context.Context, sa []string, lineno int
 	name := strings.TrimSpace(sa[RentableSpecialty])
 	rsp, err := rlib.GetRentableSpecialtyTypeByName(ctx, r.BID, name)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error getting rlib.RentableSpecialty named %s in rlib.Business %d: %s", funcname, lineno, name, r.BID, err.Error())
+		errMsg := fmt.Sprintf("error getting rlib.RentableSpecialty named %s in rlib.Business %d: %s", name, r.BID, err.Error())
+		columnNo := RentableSpecialty + 1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - error getting rlib.RentableSpecialty named %s in rlib.Business %d: %s", funcname, lineno, name, r.BID, err.Error())
 	}
 	if rsp.RSPID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not find a rlib.RentableSpecialty named %s in rlib.Business %d", funcname, lineno, name, r.BID)
+		errMsg := fmt.Sprintf("could not find a rlib.RentableSpecialty named %s in rlib.Business %d", name, r.BID)
+		columnNo := RentableSpecialty + 1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - could not find a rlib.RentableSpecialty named %s in rlib.Business %d", funcname, lineno, name, r.BID)
 	}
 	a.RSPID = rsp.RSPID
 
 	//-------------------------------------------------------------------
 	// Get the dates
 	//-------------------------------------------------------------------
-	a.DtStart, a.DtStop, err = readTwoDates(sa[DtStart], sa[DtStop], funcname, lineno, "DtStart/DtStop")
+	a.DtStart, a.DtStop, err = readTwoDates(sa[DtStart], sa[DtStop])
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s", err.Error())
+		errMsg := err.Error()
+		columnNo := -1
+
+		// two columns: "DtStart", "DtStop" are passed to readTwoDates() function
+		// hence need to explicitly check error message to decide columnNo.
+		if strings.Contains(errMsg, "start") {
+			columnNo = DtStart + 1
+		}
+		if strings.Contains(errMsg, "stop") {
+			columnNo = DtStop + 1
+		}
+
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// return CsvErrorSensitivity, fmt.Errorf("%s", err.Error())
 	}
 
 	_, err = rlib.InsertRentableSpecialtyRef(ctx, &a)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting assessment: %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting assessment: %v", err)
+		columnNo := -1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - error inserting assessment: %v", funcname, lineno, err)
 	}
 	return 0, nil
 }

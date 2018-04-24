@@ -213,7 +213,7 @@ func BuildPayorList(ctx context.Context, BID int64, s string, dfltStart, dfltSto
 		if len(strings.TrimSpace(ss[2])) == 0 {
 			ss[2] = dfltStop
 		}
-		payor.DtStart, payor.DtStop, _ = readTwoDates(ss[1], ss[2], funcname, lineno, "Payor")
+		payor.DtStart, payor.DtStop, _ = readTwoDates(ss[1], ss[2])
 
 		m = append(m, payor)
 	}
@@ -257,7 +257,7 @@ func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop strin
 		if len(strings.TrimSpace(ss[2])) == 0 {
 			ss[2] = dfltStop
 		}
-		p.DtStart, p.DtStop, _ = readTwoDates(ss[1], ss[2], funcname, lineno, "User")
+		p.DtStart, p.DtStop, _ = readTwoDates(ss[1], ss[2])
 		m = append(m, p)
 	}
 	return m, noerr
@@ -268,10 +268,9 @@ func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop strin
 // eg. FunctionName: line 24, column 4 > ThisIsTheErrorMessage
 func formatCSVErrors(functionName string, lineNo int, columnNo int, itemNo int, errorMsg string) error {
 	if itemNo > -1 {
-		return fmt.Errorf("%s: line %d, column %d, item %d > %s", functionName, lineNo, columnNo, itemNo, errorMsg)
-	} else {
-		return fmt.Errorf("%s: line %d, column %d > %s", functionName, lineNo, columnNo, errorMsg)
+		return fmt.Errorf("%s: line %d, column %d, item %d >>> %s", functionName, lineNo, columnNo, itemNo, errorMsg)
 	}
+	return fmt.Errorf("%s: line %d, column %d >>> %s", functionName, lineNo, columnNo, errorMsg)
 }
 
 // // BID is the business id of the business unit to which the people belong

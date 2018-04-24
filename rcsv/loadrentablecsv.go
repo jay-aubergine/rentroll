@@ -22,12 +22,12 @@ import (
 
 // readTwoDates assumes that a date string is in ss[1] and ss[2].  It will parse and return the dates
 // along with any error it finds.
-func readTwoDates(s1, s2 string, funcname string, lineno int, col string) (time.Time, time.Time, error) {
+func readTwoDates(s1, s2 string) (time.Time, time.Time, error) {
 	var DtStart, DtStop time.Time
 	var err error
 	DtStart, err = rlib.StringToDate(s1) // required field
 	if err != nil {
-		err = fmt.Errorf("%s: line %d   column: %s - invalid start date:  %s", funcname, lineno, col, s1)
+		err = fmt.Errorf("invalid start date:  %s", s1)
 		return DtStart, DtStop, err
 	}
 
@@ -39,7 +39,7 @@ func readTwoDates(s1, s2 string, funcname string, lineno int, col string) (time.
 	}
 	DtStop, err = rlib.StringToDate(end)
 	if err != nil {
-		err = fmt.Errorf("%s: line %d   column: %s - invalid stop date:  %s", funcname, lineno, col, s2)
+		err = fmt.Errorf("invalid stop date:  %s", s2)
 	}
 	return DtStart, DtStop, err
 }
@@ -86,10 +86,18 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 	if len(des) > 0 {
 		b1, err := rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s): %s", des, err.Error())
+			columnNo := BUD + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Business with bud %s does not exist", funcname, lineno, des)
+			errMsg := fmt.Sprintf("Business with bud %s does not exist", des)
+			columnNo := BUD + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - Business with bud %s does not exist", funcname, lineno, des)
 		}
 		r.BID = b1.BID
 	}
@@ -103,11 +111,19 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 	if err != nil {
 		s := err.Error()
 		if !strings.Contains(s, "no rows") {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error with rlib.GetRentableByName: %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error with rlib.GetRentableByName: %s", err.Error())
+			columnNo := Name + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - error with rlib.GetRentableByName: %s", funcname, lineno, err.Error())
 		}
 	}
 	if r1.RID > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s:: Rentable with name \"%s\" already exists. Skipping. ", funcname, lineno, DupRentable, r.RentableName)
+		errMsg := fmt.Sprintf("%s:: Rentable with name \"%s\" already exists. Skipping.", DupRentable, r.RentableName)
+		columnNo := Name + 1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - %s:: Rentable with name \"%s\" already exists. Skipping. ", funcname, lineno, DupRentable, r.RentableName)
 	}
 
 	//-------------------------------------------------------------------
@@ -117,7 +133,11 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 	if len(sa[AssignmentTime]) > 0 {
 		i, err := strconv.Atoi(sa[AssignmentTime])
 		if err != nil || i < 0 || i > 2 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid AssignmentTime number: %s", funcname, lineno, sa[AssignmentTime])
+			errMsg := fmt.Sprintf("invalid AssignmentTime number: %s", sa[AssignmentTime])
+			columnNo := AssignmentTime + 1
+			itemNo := -1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - invalid AssignmentTime number: %s", funcname, lineno, sa[AssignmentTime])
 		}
 		r.AssignmentTime = int64(i)
 	}
@@ -134,25 +154,41 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 		for i := 0; i < len(st); i++ {          //spin through the 3-tuples
 			ss := strings.Split(st[i], ",")
 			if len(ss) != 3 {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid User Specification. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
-					funcname, lineno, len(ss), ss)
+				errMsg := fmt.Sprintf("invalid User Specification. Each semi-colon separated field must have 3 values. Found %d in \"%s\"", len(ss), ss)
+				columnNo := RUserSpec + 1
+				itemNo := i + 1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// fmt.Errorf("%s: line %d - invalid User Specification. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
+				// 	funcname, lineno, len(ss), ss)
 			}
 
 			var ru rlib.RentableUser // struct for the data in this 3-tuple
 			name := strings.TrimSpace(ss[0])
 			n, err := CSVLoaderTransactantList(ctx, r.BID, name)
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error Loading transactant list: %s", funcname, lineno, err.Error())
+				errMsg := fmt.Sprintf("Error Loading transactant list: %s", err.Error())
+				columnNo := RUserSpec + 1
+				itemNo := i + 1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// fmt.Errorf("%s: line %d - Error Loading transactant list: %s", funcname, lineno, err.Error())
 			}
 			if len(n) == 0 || n[0].TCID == 0 {
-				rerr := fmt.Sprintf("%s: line %d - could not find Transactant with contact information %s\n", funcname, lineno, name)
-				return CsvErrorSensitivity, fmt.Errorf("%s", rerr)
+				errMsg := fmt.Sprintf("could not find Transactant with contact information %s", name)
+				columnNo := RUserSpec + 1
+				itemNo := i + 1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// rerr := fmt.Sprintf("%s: line %d - could not find Transactant with contact information %s\n", funcname, lineno, name)
+				// return CsvErrorSensitivity, fmt.Errorf("%s", rerr)
 			}
 			ru.TCID = n[0].TCID
 
-			ru.DtStart, ru.DtStop, err = readTwoDates(ss[1], ss[2], funcname, lineno, "RUserSpec")
+			ru.DtStart, ru.DtStop, err = readTwoDates(ss[1], ss[2])
 			if err != nil {
-				return CsvErrorSensitivity, err
+				errMsg := err.Error()
+				columnNo := RUserSpec + 1
+				itemNo := i + 1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// return CsvErrorSensitivity, err
 			}
 			rul = append(rul, ru) // add this struct to the list
 		}
@@ -163,35 +199,55 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 	// "S1,Strt1,Stp1;S2,Strt2,Stp2 ..."
 	//-----------------------------------------------------------------------------------
 	if 0 == len(strings.TrimSpace(sa[RentableStatus])) {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - rlib.RentableStatus value is required",
-			funcname, lineno)
+		errMsg := fmt.Sprintf("rlib.RentableStatus value is required")
+		columnNo := RentableStatus + 1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - rlib.RentableStatus value is required",
+		// 	funcname, lineno)
 	}
 	var m []rlib.RentableStatus                  // keep every rlib.RentableStatus we find in an array
 	st := strings.Split(sa[RentableStatus], ";") // split it on Status 3-tuple separator (;)
 	for i := 0; i < len(st); i++ {               //spin through the 3-tuples
 		ss := strings.Split(st[i], ",")
 		if len(ss) != 3 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid Rentable Status. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
-				funcname, lineno, len(ss), ss)
+			errMsg := fmt.Sprintf("invalid Rentable Status. Each semi-colon separated field must have 3 values. Found %d in \"%s\"", len(ss), ss)
+			columnNo := RentableStatus + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - invalid Rentable Status. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
+			// 	funcname, lineno, len(ss), ss)
 		}
 
 		var rst rlib.RentableStatus // struct for the data in this 3-tuple
 		ix, err := strconv.Atoi(ss[0])
 		if err != nil || ix < rlib.USESTATUSunknown || ix > rlib.USESTATUSLAST {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid Status value: %s.  Must be in the range %d to %d",
-				funcname, lineno, ss[0], rlib.USESTATUSunknown, rlib.USESTATUSLAST)
+			errMsg := fmt.Sprintf("invalid Status value: %s.  Must be in the range %d to %d", ss[0], rlib.USESTATUSunknown, rlib.USESTATUSLAST)
+			columnNo := RentableStatus + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - invalid Status value: %s.  Must be in the range %d to %d",
+			// 	funcname, lineno, ss[0], rlib.USESTATUSunknown, rlib.USESTATUSLAST)
 		}
 		rst.UseStatus = int64(ix)
 
-		rst.DtStart, rst.DtStop, err = readTwoDates(ss[1], ss[2], funcname, lineno, "RentableStatus")
+		rst.DtStart, rst.DtStop, err = readTwoDates(ss[1], ss[2])
 		if err != nil {
-			return CsvErrorSensitivity, err
+			errMsg := err.Error()
+			columnNo := RentableStatus + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// return CsvErrorSensitivity, err
 		}
 		m = append(m, rst) // add this struct to the list
 	}
 	if len(m) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - RentableStatus value is required",
-			funcname, lineno)
+		errMsg := fmt.Sprintf("RentableStatus value is required")
+		columnNo := RentableStatus + 1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - RentableStatus value is required",
+		// 	funcname, lineno)
 	}
 
 	//-----------------------------------------------------------------------------------
@@ -199,33 +255,53 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 	// "RTname1,Amount,startDate1,stopDate1;RTname2,startDate2,stopDate2;..."
 	//-----------------------------------------------------------------------------------
 	if 0 == len(strings.TrimSpace(sa[RentableTypeRef])) {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Rentable RTID Ref value is required",
-			funcname, lineno)
+		errMsg := fmt.Sprintf("Rentable RTID Ref value is required")
+		columnNo := RentableTypeRef + 1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - Rentable RTID Ref value is required",
+		// 	funcname, lineno)
 	}
 	var n []rlib.RentableTypeRef
 	st = strings.Split(sa[RentableTypeRef], ";") // split on RTID 3-tuple separator (;)
 	for i := 0; i < len(st); i++ {               // spin through the 3-tuples
 		ss := strings.Split(st[i], ",") // separate the 3 parts
 		if len(ss) != 3 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid RTID syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
-				funcname, lineno, len(ss), ss)
+			errMsg := fmt.Sprintf("invalid RTID syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"", len(ss), ss)
+			columnNo := RentableTypeRef + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - invalid RTID syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
+			// 	funcname, lineno, len(ss), ss)
 		}
 
 		var rt rlib.RentableTypeRef                                                       // struct for the data in this 3-tuple
 		rstruct, err := rlib.GetRentableTypeByStyle(ctx, strings.TrimSpace(ss[0]), r.BID) // find the rlib.RentableType being referenced
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not load rentable type with style name: %s  -- error = %s",
-				funcname, lineno, ss[0], err.Error())
+			errMsg := fmt.Sprintf("Could not load rentable type with style name: %s  -- error = %s", ss[0], err.Error())
+			columnNo := RentableTypeRef + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - Could not load rentable type with style name: %s  -- error = %s",
+			// 	funcname, lineno, ss[0], err.Error())
 		}
 		if rstruct.RTID == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not load rentable type with style name: %s",
-				funcname, lineno, ss[0])
+			errMsg := fmt.Sprintf("Could not load rentable type with style name: %s", ss[0])
+			columnNo := RentableTypeRef + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// fmt.Errorf("%s: line %d - Could not load rentable type with style name: %s",
+			// 	funcname, lineno, ss[0])
 		}
 		rt.RTID = rstruct.RTID
 
-		rt.DtStart, rt.DtStop, err = readTwoDates(ss[1], ss[2], funcname, lineno, "RentableTypeRef")
+		rt.DtStart, rt.DtStop, err = readTwoDates(ss[1], ss[2])
 		if err != nil {
-			return CsvErrorSensitivity, err
+			errMsg := err.Error()
+			columnNo := RentableTypeRef + 1
+			itemNo := i + 1
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+			// return CsvErrorSensitivity, err
 		}
 		n = append(n, rt) // add this struct to the list
 	}
@@ -235,7 +311,11 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 	//-------------------------------------------------------------------
 	rid, err := rlib.InsertRentable(ctx, &r)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting rlib.Rentable = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting rlib.Rentable = %v", err)
+		columnNo := -1
+		itemNo := -1
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+		// fmt.Errorf("%s: line %d - error inserting rlib.Rentable = %v", funcname, lineno, err)
 	}
 	if rid > 0 {
 		for i := 0; i < len(rul); i++ {
@@ -243,7 +323,11 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 			rul[i].BID = r.BID
 			_, err := rlib.InsertRentableUser(ctx, &rul[i])
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error saving rlib.RentableUser: %s", funcname, lineno, err.Error())
+				errMsg := fmt.Sprintf("error saving rlib.RentableUser: %s", err.Error())
+				columnNo := -1
+				itemNo := -1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// fmt.Errorf("%s: line %d - error saving rlib.RentableUser: %s", funcname, lineno, err.Error())
 			}
 		}
 		for i := 0; i < len(m); i++ {
@@ -251,7 +335,11 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 			m[i].BID = r.BID
 			_, err := rlib.InsertRentableStatus(ctx, &m[i])
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error saving rlib.RentableStatus: %s", funcname, lineno, err.Error())
+				errMsg := fmt.Sprintf("error saving rlib.RentableStatus: %s", err.Error())
+				columnNo := -1
+				itemNo := -1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// fmt.Errorf("%s: line %d - error saving rlib.RentableStatus: %s", funcname, lineno, err.Error())
 			}
 		}
 		for i := 0; i < len(n); i++ {
@@ -259,7 +347,11 @@ func CreateRentables(ctx context.Context, sa []string, lineno int) (int, error) 
 			n[i].BID = r.BID
 			_, err := rlib.InsertRentableTypeRef(ctx, &n[i])
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error saving rlib.RentableStatus: %s", funcname, lineno, err.Error())
+				errMsg := fmt.Sprintf("error saving rlib.RentableTypeRef: %s", err.Error())
+				columnNo := -1
+				itemNo := -1
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, columnNo, itemNo, errMsg)
+				// fmt.Errorf("%s: line %d - error saving rlib.RentableStatus: %s", funcname, lineno, err.Error())
 			}
 		}
 	}
