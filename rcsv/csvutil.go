@@ -263,6 +263,17 @@ func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop strin
 	return m, noerr
 }
 
+// formatCSVErrors function formats the error and sends it
+// eg. FunctionName: line 24, column 4, item 2 > ThisIsTheErrorMessage
+// eg. FunctionName: line 24, column 4 > ThisIsTheErrorMessage
+func formatCSVErrors(functionName string, lineNo int, columnNo int, itemNo int, errorMsg string) error {
+	if itemNo > -1 {
+		return fmt.Errorf("%s: line %d, column %d, item %d > %s", functionName, lineNo, columnNo, itemNo, errorMsg)
+	} else {
+		return fmt.Errorf("%s: line %d, column %d > %s", functionName, lineNo, columnNo, errorMsg)
+	}
+}
+
 // // BID is the business id of the business unit to which the people belong
 // func x(BID int64) {
 // 	rows, err := rlib.RRdb.Prepstmt.GetAllTransactantsForBID.Query(BID)
