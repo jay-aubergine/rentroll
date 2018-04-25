@@ -28,3 +28,6 @@ test:
 
 man:
 	nroff -man rrrestore.1
+
+secure:
+	@rm -f config.json confdev.json confprod.json

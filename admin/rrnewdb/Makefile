@@ -29,3 +29,6 @@ test:
 
 man:
 	nroff -man rrnewdb.1
+
+secure:
+	@rm -f config.json confdev.json confprod.json

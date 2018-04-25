@@ -22,3 +22,6 @@ clean:
 
 package:
 	@echo "*** PACKAGE completed in rcsv ***"
+
+secure:
+	@rm -f config.json confdev.json confprod.json

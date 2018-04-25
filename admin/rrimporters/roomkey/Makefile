@@ -27,3 +27,6 @@ package: roomkey
 	cp ./roomkey ${TOP}/tmp/rentroll/importers/roomkey/roomkeyload
 	@echo "*** PACKAGE completed in rrimporters/roomkey ***"
 	@rm -f fail
+
+secure:
+	@rm -f config.json confdev.json confprod.json

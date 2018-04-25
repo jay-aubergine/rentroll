@@ -13,3 +13,6 @@ test:
 
 package:
 	@echo "*** PACKAGE completed in mrr ***"
+
+secure:
+	@rm -f config.json confdev.json confprod.json

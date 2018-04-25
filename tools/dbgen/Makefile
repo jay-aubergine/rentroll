@@ -25,3 +25,6 @@ test:
 
 package:
 	@echo "*** PACKAGE completed in ${THIS} ***"
+
+secure:
+	@rm -f config.json confdev.json confprod.json
