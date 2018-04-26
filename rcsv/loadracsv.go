@@ -165,7 +165,7 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	//  The Payors
 	//-------------------------------------------------------------------
-	payors, err := BuildPayorList(ctx, ra.BID, sa[PayorSpec], dfltStart, dfltStop, funcname, lineno)
+	payors, err := BuildPayorList(ctx, ra.BID, sa[PayorSpec], dfltStart, dfltStop, funcname, lineno, PayorSpec)
 	if err != nil { // save the full list
 		return CsvErrorSensitivity, err
 	}
@@ -173,7 +173,7 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	//  The Users
 	//-------------------------------------------------------------------
-	users, err := BuildUserList(ctx, ra.BID, sa[UserSpec], dfltStart, dfltStop, funcname, lineno)
+	users, err := BuildUserList(ctx, ra.BID, sa[UserSpec], dfltStart, dfltStop, funcname, lineno, UserSpec)
 	if err != nil { // save the full list
 		return CsvErrorSensitivity, err
 	}

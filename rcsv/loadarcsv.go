@@ -65,10 +65,12 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	if len(des) > 0 { // make sure it's not empty
 		b1, err := rlib.GetBusinessByDesignation(ctx, des) // see if we can find the biz
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("Business with designation %s does not exist", sa[0])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("Business with designation %s does not exist", sa[0])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		b.BID = b1.BID
 	}
@@ -79,10 +81,12 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	b.Name = sa[Name]
 	b2, err := rlib.GetARByName(ctx, b.BID, b.Name)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error attempting to read existing records with name = %s: %s", funcname, lineno, b.Name, err.Error())
+		errMsg := fmt.Sprintf("Error attempting to read existing records with name = %s: %s", b.Name, err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 	}
 	if b2.Name == b.Name {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - An AR rule with name = %s already exists. Ignoring this line", funcname, lineno, b.Name)
+		errMsg := fmt.Sprintf("An AR rule with name = %s already exists. Ignoring this line", b.Name)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 	}
 
 	//-----------------------------------------
@@ -99,7 +103,8 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	case "sub-assessment":
 		b.ARType = rlib.ARSUBASSESSMENT
 	default:
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - ARType must be either Assessment or Receipt.  Found: %s", funcname, lineno, s)
+		errMsg := fmt.Sprintf("ARType must be either Assessment or Receipt.  Found: %s", s)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ARType, -1, errMsg)
 	}
 
 	//----------------------------------------------------------------
@@ -111,21 +116,23 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	if err == nil && b.DebitLID > 0 {                                      // try the LID first
 		gl, err = rlib.GetLedger(ctx, b.DebitLID)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error while getting ledger. Error: %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error while getting ledger. Error: %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DebitLID, -1, errMsg)
 		}
 	}
 	if gl.LID == 0 && len(sa[DebitLID]) > 0 {
-		// TODO(Steve): ignore error?
-		gl, _ = rlib.GetLedgerByName(ctx, b.BID, sa[DebitLID]) // if it's not a number, try the Name
+		// if it's not a number, try the Name
+		gl, _ = rlib.GetLedgerByName(ctx, b.BID, sa[DebitLID])
 		if gl.LID == 0 {
-			// TODO(Steve): ignore error?
-			gl, _ = rlib.GetLedgerByGLNo(ctx, b.BID, sa[DebitLID]) // if not a name, then try GLNumber
+			// if not a name, then try GLNumber
+			gl, _ = rlib.GetLedgerByGLNo(ctx, b.BID, sa[DebitLID])
 		}
 	}
 	// rlib.Console("DEBIT LID = %s\n", gl.Name)
 	b.DebitLID = gl.LID
 	if b.DebitLID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not find GLAccount for = %s", funcname, lineno, sa[DebitLID])
+		errMsg := fmt.Sprintf("Could not find GLAccount for = %s", sa[DebitLID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DebitLID, -1, errMsg)
 	}
 
 	//----------------------------------------------------------------
@@ -135,21 +142,22 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	// rlib.Console("sa[CreditLID] = %s\n", sa[CreditLID])
 	b.CreditLID, err = rlib.IntFromString(sa[CreditLID], "Invalid CreditLID")
 	if err == nil || b.CreditLID > 0 {
-		// TODO(Steve): ignore error?
+		// first try to search with LID
 		glc, _ = rlib.GetLedger(ctx, b.CreditLID)
 	}
 	if glc.LID == 0 && len(sa[CreditLID]) > 0 {
-		// TODO(Steve): ignore error?
+		// if not a number, then try Name
 		glc, _ = rlib.GetLedgerByName(ctx, b.BID, sa[CreditLID])
 		if glc.LID == 0 {
-			// TODO(Steve): ignore error?
-			glc, _ = rlib.GetLedgerByGLNo(ctx, b.BID, sa[CreditLID]) // if not a name, then try GLNumber
+			// if not a name, then try GLNumber
+			glc, _ = rlib.GetLedgerByGLNo(ctx, b.BID, sa[CreditLID])
 		}
 	}
 	// rlib.Console("CREDIT LID = %s\n", glc.Name)
 	b.CreditLID = glc.LID
 	if b.CreditLID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid GLAccountID: %s", funcname, lineno, sa[CreditLID])
+		errMsg := fmt.Sprintf("Invalid GLAccountID: %s", sa[CreditLID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, CreditLID, -1, errMsg)
 	}
 
 	//----------------------------------------------------------------
@@ -163,7 +171,8 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	}
 	alloc, err = rlib.YesNoToInt(yn)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid Allocated column value: %s", funcname, lineno, sa[Allocated])
+		errMsg := fmt.Sprintf("invalid Allocated column value: %s", sa[Allocated])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Allocated, -1, errMsg)
 	}
 	if alloc > 0 {
 		b.FLAGS |= 1 << 0
@@ -174,7 +183,8 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	}
 	show, err = rlib.YesNoToInt(yn)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid ShowOnRA column value: %s", funcname, lineno, sa[ShowOnRA])
+		errMsg := fmt.Sprintf("invalid ShowOnRA column value: %s", sa[ShowOnRA])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ShowOnRA, -1, errMsg)
 	}
 	if show > 0 {
 		b.FLAGS |= 1 << 1
@@ -185,7 +195,8 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 	}
 	rarqd, err = rlib.YesNoToInt(yn)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid RAIDRequired column value: %s", funcname, lineno, sa[RAIDRequired])
+		errMsg := fmt.Sprintf("invalid RAIDRequired column value: %s", sa[RAIDRequired])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RAIDRequired, -1, errMsg)
 	}
 	if rarqd > 0 {
 		b.FLAGS |= 1 << 2
@@ -206,7 +217,8 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 			x.BID = b.BID
 			subar, err := rlib.GetARByName(ctx, b.BID, sarsa[i])
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not get Account Rule named: %s, err: %s", funcname, lineno, sarsa[i], err.Error())
+				errMsg := fmt.Sprintf("could not get Account Rule named: %s, err: %s", sarsa[i], err.Error())
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, SubARSpec, i, errMsg)
 			}
 			x.SubARID = subar.ARID
 			b.SubARs = append(b.SubARs, x) // we will need to update these structs with b.ARID after we save it below
@@ -223,14 +235,16 @@ func CreateAR(ctx context.Context, sa []string, lineno int) (int, error) {
 
 	_, err = rlib.InsertAR(ctx, &b)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: error inserting AR = %v", funcname, err)
+		errMsg := fmt.Sprintf("%s: error inserting AR = %v", funcname, err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Description, -1, errMsg)
 	}
 
 	for i := 0; i < len(b.SubARs); i++ {
 		b.SubARs[i].ARID = b.ARID
 		_, err = rlib.InsertSubAR(ctx, &b.SubARs[i])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error saving SubAR[%d]: %s", funcname, lineno, i, err.Error())
+			errMsg := fmt.Sprintf("error saving SubAR[%d]: %s", i, err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, SubARSpec, i, errMsg)
 		}
 	}
 

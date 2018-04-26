@@ -49,10 +49,12 @@ func CreateDepositMethod(ctx context.Context, sa []string, lineno int) (int, err
 	if len(des) > 0 {                                  // make sure it's not empty
 		b1, err := rlib.GetBusinessByDesignation(ctx, des) // see if we can find the biz
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s), error: %s", funcname, lineno, sa[BUD], err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, Business with designation %s does not exist", funcname, lineno, sa[BUD])
+			errMsg := fmt.Sprintf("Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		a.BID = b1.BID
 	}
@@ -66,18 +68,21 @@ func CreateDepositMethod(ctx context.Context, sa []string, lineno int) (int, err
 		if err != nil {
 			s := err.Error()
 			if !strings.Contains(s, "no rows") {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d -   returners, d error %v", funcname, lineno, err)
+				errMsg := fmt.Sprintf("returners, d error %v", err)
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 			}
 		}
 		if len(a1.Method) > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - DepositMethod with Name %s already exists", funcname, lineno, name)
+			errMsg := fmt.Sprintf("DepositMethod with Name %s already exists", sa[Name])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 		}
 	}
 
 	a.Method = name
 	_, err = rlib.InsertDepositMethod(ctx, &a)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not insert DepositMethod. err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not insert DepositMethod. err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }

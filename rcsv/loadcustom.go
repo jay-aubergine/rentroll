@@ -52,20 +52,24 @@ func CreateCustomAttributes(ctx context.Context, sa []string, lineno int) (int, 
 	if len(cmpdes) > 0 {
 		b2, err := rlib.GetBusinessByDesignation(ctx, cmpdes)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not find Business named %s", funcname, lineno, cmpdes)
+			errMsg := fmt.Sprintf("could not find Business named %s", cmpdes)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if b2.BID == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not find Business named %s", funcname, lineno, cmpdes)
+			errMsg := fmt.Sprintf("could not find Business named %s", cmpdes)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		c.BID = b2.BID
 	}
 
 	c.Type, err = rlib.IntFromString(sa[ValueType], "Type is invalid")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf(err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ValueType, -1, errMsg)
 	}
 	if c.Type < rlib.CUSTSTRING || c.Type > rlib.CUSTLAST {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Type value must be a number from %d to %d", funcname, lineno, rlib.CUSTSTRING, rlib.CUSTLAST)
+		errMsg := fmt.Sprintf("Type value must be a number from %d to %d", rlib.CUSTSTRING, rlib.CUSTLAST)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ValueType, -1, errMsg)
 	}
 
 	c.Name = strings.TrimSpace(sa[Name])
@@ -75,31 +79,37 @@ func CreateCustomAttributes(ctx context.Context, sa []string, lineno int) (int, 
 	case rlib.CUSTINT:
 		_, err = rlib.IntFromString(c.Value, "Value cannot be converted to an integer")
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf(err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Value, -1, errMsg)
 		}
 	case rlib.CUSTUINT:
 		_, err = rlib.IntFromString(c.Value, "Value cannot be converted to an unsigned integer")
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf(err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Value, -1, errMsg)
 		}
 	case rlib.CUSTFLOAT:
 		_, errmsg = rlib.FloatFromString(c.Value, "Value cannot be converted to an float")
 		if len(errmsg) > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, errmsg)
+			errMsg := fmt.Sprintf(errmsg)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Value, -1, errMsg)
 		}
 	}
 
 	dup, err := rlib.GetCustomAttributeByVals(ctx, c.Type, c.Name, c.Value, c.Units)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error checking for duplicate Custom Attributes: %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("error checking for duplicate Custom Attributes: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	if dup.CID > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s:: skipping this because a custom attribute with Type = %d, Name = %s, Value = %s, Units = %s already exists", funcname, lineno, DupCustomAttribute, c.Type, c.Name, c.Value, c.Units)
+		errMsg := fmt.Sprintf("%s:: skipping this because a custom attribute with Type = %d, Name = %s, Value = %s, Units = %s already exists", DupCustomAttribute, c.Type, c.Name, c.Value, c.Units)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	_, err = rlib.InsertCustomAttribute(ctx, &c)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not insert CustomAttribute. err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not insert CustomAttribute. err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }

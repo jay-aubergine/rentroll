@@ -49,29 +49,35 @@ func CreateCustomAttributeRefs(ctx context.Context, sa []string, lineno int) (in
 	if len(cmpdes) > 0 {
 		b2, err := rlib.GetBusinessByDesignation(ctx, cmpdes)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not find Business named %s", funcname, lineno, cmpdes)
+			errMsg := fmt.Sprintf("could not find Business named %s", cmpdes)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if b2.BID == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not find Business named %s", funcname, lineno, cmpdes)
+			errMsg := fmt.Sprintf("could not find Business named %s", cmpdes)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		c.BID = b2.BID
 	}
 
 	c.ElementType, err = rlib.IntFromString(sa[ElementType], "ElementType is invalid")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf(err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ElementType, -1, errMsg)
 	}
 	if c.ElementType < rlib.ELEMRENTABLETYPE || c.ElementType > rlib.ELEMLAST {
-		return CsvErrorSensitivity, fmt.Errorf("ElementType value must be a number from %d to %d", rlib.ELEMRENTABLETYPE, rlib.ELEMLAST)
+		errMsg := fmt.Sprintf("ElementType value must be a number from %d to %d", rlib.ELEMRENTABLETYPE, rlib.ELEMLAST)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ElementType, -1, errMsg)
 	}
 
 	c.ID, err = rlib.IntFromString(sa[ID], "ID value cannot be converted to an integer")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf(err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ID, -1, errMsg)
 	}
 	c.CID, err = rlib.IntFromString(sa[CID], "CID value cannot be converted to an integer")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf(err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, CID, -1, errMsg)
 	}
 
 	switch c.ElementType {
@@ -79,19 +85,22 @@ func CreateCustomAttributeRefs(ctx context.Context, sa []string, lineno int) (in
 		var rt rlib.RentableType
 		err := rlib.GetRentableType(ctx, c.ID, &rt)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not load rlib.RentableType with id %d:  error = %v", funcname, lineno, c.ID, err)
+			errMsg := fmt.Sprintf("Could not load rlib.RentableType with id %d:  error = %v", c.ID, err)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ID, -1, errMsg)
 		}
 	}
 
 	// TODO(Steve): ignore error?
 	ref, _ := rlib.GetCustomAttributeRef(ctx, c.ElementType, c.ID, c.CID)
 	if ref.ElementType == c.ElementType && ref.CID == c.CID && ref.ID == c.ID {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - This reference already exists, no changes made", funcname, lineno)
+		errMsg := fmt.Sprintf("This reference already exists, no changes made")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	_, err = rlib.InsertCustomAttributeRef(ctx, &c)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not insert CustomAttributeRef. err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not insert CustomAttributeRef. err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }

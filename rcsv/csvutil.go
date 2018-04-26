@@ -82,18 +82,21 @@ func ValidateCSVColumnsErr(csvCols []CSVColumn, sa []string, funcname string, li
 			if i < l {
 				s := rlib.Stripchars(strings.ToLower(strings.TrimSpace(sa[i])), " ")
 				if s != strings.ToLower(csvCols[i].Name) {
-					return true, fmt.Errorf("%s: line %d - Error at column heading %d, expected %s, found %s", funcname, lineno, i, csvCols[i].Name, sa[i])
+					errMsg := fmt.Sprintf("Error at column heading %d, expected %s, found %s", i+1, csvCols[i].Name, sa[i])
+					return true, formatCSVErrors(funcname, lineno, i, -1, errMsg)
 				}
 			}
 		}
-		return true, fmt.Errorf("%s: line %d - found %d values, there must be at least %d", funcname, lineno, len(sa), required)
+		errMsg := fmt.Sprintf("found %d values, there must be at least %d", len(sa), required)
+		return true, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	if lineno == 1 {
 		for i := 0; i < len(csvCols); i++ {
 			s := rlib.Stripchars(strings.ToLower(strings.TrimSpace(sa[i])), " ")
 			if s != strings.ToLower(csvCols[i].Name) {
-				return true, fmt.Errorf("%s: line %d - Error at column heading %d, expected %s, found %s", funcname, lineno, i, csvCols[i].Name, sa[i])
+				errMsg := fmt.Sprintf("Error at column heading %d, expected %s, found %s", i+1, csvCols[i].Name, sa[i])
+				return true, formatCSVErrors(funcname, lineno, i, -1, errMsg)
 			}
 		}
 	}
@@ -174,7 +177,7 @@ func ErrlistToString(m *[]error) string {
 // default values of dfltStart and dfltStop -- which are the start/stop time of the rental agreement --
 // are used instead. This is common because the payors will usually be the same for the entire rental
 // agreement lifetime.
-func BuildPayorList(ctx context.Context, BID int64, s string, dfltStart, dfltStop string, funcname string, lineno int) ([]rlib.RentalAgreementPayor, error) {
+func BuildPayorList(ctx context.Context, BID int64, s string, dfltStart, dfltStop string, funcname string, lineno int, columnNo int) ([]rlib.RentalAgreementPayor, error) {
 	var (
 		m []rlib.RentalAgreementPayor
 		// err error
@@ -182,25 +185,29 @@ func BuildPayorList(ctx context.Context, BID int64, s string, dfltStart, dfltSto
 	// var noerr error
 	s2 := strings.TrimSpace(s) // either the email address or the phone number
 	if len(s2) == 0 {
-		return m, fmt.Errorf("%s: line %d - Required Payor field is blank", funcname, lineno)
+		errMsg := fmt.Sprintf("Required Payor field is blank")
+		return m, formatCSVErrors(funcname, lineno, columnNo, -1, errMsg)
 	}
 	s1 := strings.Split(s2, ";")
 	for i := 0; i < len(s1); i++ {
 		ss := strings.Split(s1[i], ",")
 		if len(ss) != 3 {
-			return m, fmt.Errorf("%s: line %d - invalid Payor Status syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
-				funcname, lineno, len(ss), ss)
+			errMsg := fmt.Sprintf("invalid Payor Status syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"", len(ss), ss)
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 		s = strings.TrimSpace(ss[0]) // either the email address or the phone number or TransactantID (TC0003234)
 		if len(s) == 0 {
-			return m, fmt.Errorf("%s: line %d - Required Payor field is blank", funcname, lineno)
+			errMsg := fmt.Sprintf("Required Payor field is blank")
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 		n, err := CSVLoaderTransactantList(ctx, BID, s)
 		if err != nil {
-			return m, fmt.Errorf("%s:  line %d - could not find rlib.Transactant with contact information %s", funcname, lineno, s)
+			errMsg := fmt.Sprintf("could not find rlib.Transactant with contact information %s", s)
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 		if len(n) == 0 {
-			return m, fmt.Errorf("%s:  line %d - could not find rlib.Transactant with contact information %s", funcname, lineno, s)
+			errMsg := fmt.Sprintf("could not find rlib.Transactant with contact information %s", s)
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 
 		var payor rlib.RentalAgreementPayor
@@ -213,7 +220,8 @@ func BuildPayorList(ctx context.Context, BID int64, s string, dfltStart, dfltSto
 		if len(strings.TrimSpace(ss[2])) == 0 {
 			ss[2] = dfltStop
 		}
-		payor.DtStart, payor.DtStop, _ = readTwoDates(ss[1], ss[2], funcname, lineno, "Payor")
+		// TODO(Steve): should we ignore the error?
+		payor.DtStart, payor.DtStop, _ = readTwoDates(ss[1], ss[2])
 
 		m = append(m, payor)
 	}
@@ -221,7 +229,7 @@ func BuildPayorList(ctx context.Context, BID int64, s string, dfltStart, dfltSto
 }
 
 // BuildUserList parses a UserSpec and returns an array of RentableUser structs
-func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop string, funcname string, lineno int) ([]rlib.RentableUser, error) {
+func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop string, funcname string, lineno int, columnNo int) ([]rlib.RentableUser, error) {
 	var (
 		m []rlib.RentableUser
 		// err error
@@ -229,24 +237,26 @@ func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop strin
 
 	s2 := strings.TrimSpace(sa) // TCID, email address, or the phone number
 	if len(s2) == 0 {
-		return m, fmt.Errorf("%s: line %d - Required User field is blank", funcname, lineno)
+		errMsg := fmt.Sprintf("Required User field is blank")
+		return m, formatCSVErrors(funcname, lineno, columnNo, -1, errMsg)
 	}
 	s1 := strings.Split(s2, ";")
 	var noerr error
 	for i := 0; i < len(s1); i++ {
 		ss := strings.Split(s1[i], ",")
 		if len(ss) != 3 {
-			err := fmt.Errorf("%s: line %d - invalid Status syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"",
-				funcname, lineno, len(ss), ss)
-			return m, err
+			errMsg := fmt.Sprintf("invalid Status syntax. Each semi-colon separated field must have 3 values. Found %d in \"%s\"", len(ss), ss)
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 		s := strings.TrimSpace(ss[0]) // TCID, email address, or the phone number
 		if len(s) == 0 {
-			return m, fmt.Errorf("%s: line %d - Required User field is blank", funcname, lineno)
+			errMsg := fmt.Sprintf("Required User field is blank")
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 		n, err := CSVLoaderTransactantList(ctx, BID, s)
 		if err != nil {
-			return m, fmt.Errorf("%s: line %d - invalid person identifier: %s. Error = %s", funcname, lineno, s, err.Error())
+			errMsg := fmt.Sprintf("invalid person identifier: %s. Error = %s", s, err.Error())
+			return m, formatCSVErrors(funcname, lineno, columnNo, i, errMsg)
 		}
 		var p rlib.RentableUser
 		p.TCID = n[0].TCID
@@ -257,10 +267,25 @@ func BuildUserList(ctx context.Context, BID int64, sa, dfltStart, dfltStop strin
 		if len(strings.TrimSpace(ss[2])) == 0 {
 			ss[2] = dfltStop
 		}
-		p.DtStart, p.DtStop, _ = readTwoDates(ss[1], ss[2], funcname, lineno, "User")
+		// TODO(Steve): should we ignore the error?
+		p.DtStart, p.DtStop, _ = readTwoDates(ss[1], ss[2])
 		m = append(m, p)
 	}
 	return m, noerr
+}
+
+// formatCSVErrors function formats the error and sends it
+// eg. FunctionName: line 24, column 4, item 2 > ThisIsTheErrorMessage
+// eg. FunctionName: line 24, column 4 > ThisIsTheErrorMessage
+func formatCSVErrors(functionName string, lineNo int, columnNo int, itemNo int, errorMsg string) error {
+	if columnNo > -1 {
+		columnNo = columnNo + 1
+	}
+	if itemNo > -1 {
+		itemNo = itemNo + 1
+		return fmt.Errorf("%s: line %d, column %d, item %d >>> %s", functionName, lineNo, columnNo, itemNo, errorMsg)
+	}
+	return fmt.Errorf("%s: line %d, column %d >>> %s", functionName, lineNo, columnNo, errorMsg)
 }
 
 // // BID is the business id of the business unit to which the people belong

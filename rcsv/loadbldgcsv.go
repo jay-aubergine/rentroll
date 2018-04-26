@@ -61,7 +61,8 @@ func CreateBuilding(ctx context.Context, sa []string, lineno int) (int, error) {
 		// TODO(Steve): ignore error?
 		b1, _ := rlib.GetBusinessByDesignation(ctx, des)
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - rlib.Business with designation %s does not exist", funcname, lineno, des)
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", des)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		b.BID = b1.BID
 	}
@@ -72,7 +73,8 @@ func CreateBuilding(ctx context.Context, sa []string, lineno int) (int, error) {
 	if len(sa[1]) > 0 {
 		i, err := strconv.Atoi(sa[1])
 		if err != nil || i < 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid rlib.Building number: %s", funcname, lineno, sa[1])
+			errMsg := fmt.Sprintf("invalid rlib.Building number: %s", sa[BldgNo])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BldgNo, -1, errMsg)
 		}
 		b.BLDGID = int64(i)
 	}
@@ -89,7 +91,8 @@ func CreateBuilding(ctx context.Context, sa []string, lineno int) (int, error) {
 	//-------------------------------------------------------------------
 	_, err = rlib.InsertBuildingWithID(ctx, &b)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting rlib.Building = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting rlib.Building = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }

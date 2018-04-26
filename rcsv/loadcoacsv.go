@@ -75,7 +75,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 		// TODO(Steve): ignore error?
 		b1, _ := rlib.GetBusinessByDesignation(ctx, des)
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		lm.BID = b1.BID
 		l.BID = b1.BID
@@ -98,7 +99,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 	g := strings.TrimSpace(sa[GLNumber])
 	// rlib.Console("len(g) = %d\n", len(sa[GLNumber]))
 	if len(g) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - You must supply a GL Number for this entry", funcname, lineno)
+		errMsg := fmt.Sprintf("You must supply a GL Number for this entry")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, GLNumber, -1, errMsg)
 	}
 	if len(g) > 0 {
 		// if we're inserting a record then it must not already exist
@@ -109,7 +111,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 			ldg, _ := rlib.GetLedgerByGLNo(ctx, lm.BID, g)
 			// rlib.Console("ldg.LID = %d, name = %s\n", ldg.LID, ldg.Name)
 			if ldg.LID > 0 {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Account already exists: %s", funcname, lineno, g)
+				errMsg := fmt.Sprintf("Account already exists: %s", g)
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, GLNumber, -1, errMsg)
 			}
 			// // was there an error in finding an account with this GLNo?
 			// if err != nil {
@@ -130,10 +133,12 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 	if len(g) > 0 {
 		parent, err = rlib.GetLedgerByGLNo(ctx, l.BID, g)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error getting GLAccount: %s", funcname, lineno, g)
+			errMsg := fmt.Sprintf("Error getting GLAccount: %s", g)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ParentGLNumber, -1, errMsg)
 		}
 		if parent.LID == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error getting GLAccount: %s", funcname, lineno, g)
+			errMsg := fmt.Sprintf("Error getting GLAccount: %s", g)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ParentGLNumber, -1, errMsg)
 		}
 		l.PLID = parent.LID
 	}
@@ -152,7 +157,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 	if len(g) > 0 {
 		x, err := strconv.ParseFloat(g, 64)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid balance: %s", funcname, lineno, sa[Balance])
+			errMsg := fmt.Sprintf("Invalid balance: %s", sa[Balance])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Balance, -1, errMsg)
 		}
 		lm.Balance = x
 	}
@@ -167,7 +173,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 	} else if "inactive" == s {
 		l.Status = rlib.ACCTSTATUSINACTIVE
 	} else {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid account status: %s", funcname, lineno, sa[AccountStatus])
+		errMsg := fmt.Sprintf("Invalid account status: %s", sa[AccountStatus])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AccountStatus, -1, errMsg)
 	}
 
 	// rlib.Console("F\n")
@@ -177,7 +184,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 	//----------------------------------------------------------------------
 	_, err = rlib.StringToDate(sa[Date])
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid stop date:  %s", funcname, lineno, sa[Date])
+		errMsg := fmt.Sprintf("Invalid stop date: %s", sa[Date])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Date, -1, errMsg)
 	}
 	lm.Dt = time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC) // always force the initial ledger marker to "the beginning of time"
 
@@ -215,7 +223,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 		lm.LID = l.LID
 	}
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not save rlib.GLAccount marker, err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not save rlib.GLAccount marker, err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	// Now update the markers
@@ -225,7 +234,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 		err = rlib.UpdateLedgerMarker(ctx, &lm)
 	}
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not save rlib.GLAccount marker, err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not save rlib.GLAccount marker, err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	//--------------------------------------------------------------
@@ -237,7 +247,8 @@ func CreateLedgerMarkers(ctx context.Context, sa []string, lineno int) (int, err
 			parent.AllowPost = 0
 			err = rlib.UpdateLedger(ctx, &parent)
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not update rlib.GLAccount marker, err = %s", funcname, lineno, err.Error())
+				errMsg := fmt.Sprintf("Could not save rlib.GLAccount marker, err = %v", err.Error())
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 			}
 		}
 	}

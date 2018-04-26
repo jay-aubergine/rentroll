@@ -68,7 +68,8 @@ func CreatePhonebookLinkedBusiness(ctx context.Context, sa []string, lineno int)
 		// TODO(Steve): ignore error?
 		b1, _ := rlib.GetBusinessByDesignation(ctx, des)
 		if len(b1.Designation) > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -rs, rlib.Business Unit with designation %s already exists", funcname, lineno, des)
+			errMsg := fmt.Sprintf("rs, rlib.Business Unit with designation %s already exists", des)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		found = false
 	}
@@ -77,6 +78,7 @@ func CreatePhonebookLinkedBusiness(ctx context.Context, sa []string, lineno int)
 	// It does not exist, see if we can find it in Phonebook...
 	//-------------------------------------------------------------------
 	if !found && len(des) > 0 {
+		// TODO(Steve): ignore error?
 		bu, _ := rlib.GetBusinessUnitByDesignation(ctx, des)
 		if len(bu.Description) > 0 {
 			found = true
@@ -89,21 +91,24 @@ func CreatePhonebookLinkedBusiness(ctx context.Context, sa []string, lineno int)
 	// DefaultRentCycle
 	//-----------------------------------------
 	if b.DefaultRentCycle, ok = GetAccrual(strings.TrimSpace(sa[2])); !ok {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid Rent Cycle: %s", funcname, lineno, sa[2])
+		errMsg := fmt.Sprintf("Invalid Rent Cycle: %s", sa[DefaultRentCycle])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DefaultRentCycle, -1, errMsg)
 	}
 
 	//-----------------------------------------
 	// DefaultProrationCycle
 	//-----------------------------------------
 	if b.DefaultProrationCycle, ok = GetAccrual(strings.TrimSpace(sa[3])); !ok {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid Proration Cycle: %s", funcname, lineno, sa[3])
+		errMsg := fmt.Sprintf("Invalid Proration Cycle: %s", sa[DefaultProrationCycle])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DefaultProrationCycle, -1, errMsg)
 	}
 
 	//-----------------------------------------
 	// DefaultGSRPC
 	//-----------------------------------------
 	if b.DefaultGSRPC, ok = GetAccrual(strings.TrimSpace(sa[4])); !ok {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid GSRPC: %s", funcname, lineno, sa[4])
+		errMsg := fmt.Sprintf("Invalid GSRPC: %s", sa[DefaultGSRPC])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DefaultGSRPC, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -117,7 +122,8 @@ func CreatePhonebookLinkedBusiness(ctx context.Context, sa []string, lineno int)
 	// fmt.Printf("Business to save:  %#v\n", b)
 	_, err = rlib.InsertBusiness(ctx, &b)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: error inserting rlib.Business = %v", funcname, err)
+		errMsg := fmt.Sprintf("error inserting rlib.Business = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	// err = rlib.NewBusinessInit(bid)
 	// if err != nil {

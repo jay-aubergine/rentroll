@@ -49,10 +49,12 @@ func CreateDepositoriesFromCSV(ctx context.Context, sa []string, lineno int) (in
 	if len(sa[BUD]) > 0 {
 		b1, err := rlib.GetBusinessByDesignation(ctx, sa[BUD])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		d.BID = b1.BID
 	}
@@ -60,29 +62,33 @@ func CreateDepositoriesFromCSV(ctx context.Context, sa []string, lineno int) (in
 	if len(sa[LID]) > 0 {
 		var acct rlib.GLAccount
 		i, err := strconv.Atoi(sa[LID])
+
+		// if LID is provided for the GLAccount then
 		if err == nil {
 			d.LID = int64(i)
 		}
+
 		// validate that this is a valid LID
 		if d.LID > 0 {
-			// TODO(Steve): ignore error?
 			acct, _ = rlib.GetLedger(ctx, d.LID)
 		}
+
+		// If account was not found by LID, then try to find by GLNumber
+		// maybe GLNumber is provided in sa[LID] column
 		if acct.LID == 0 {
-			// TODO(Steve): ignore error?
 			gl, _ := rlib.GetLedgerByGLNo(ctx, d.BID, sa[LID])
 			if gl.LID == 0 {
-				// TODO(Steve): ignore error?
-				gl, _ = rlib.GetLedgerByName(ctx, d.BID, sa[LID]) // see if we can find it by name
-				if gl.LID == 0 {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - No GL Account with Name or AccountNumber = %s", funcname, lineno, sa[LID])
-				}
+				// If again not found then try to find by AccountName
+				// maybe AccountName is provided
+				// strip the whilespaces in column value then try to find
+				gl, _ = rlib.GetLedgerByName(ctx, d.BID, strings.TrimSpace(sa[LID])) // see if we can find it by name
 			}
 			d.LID = gl.LID
 		}
 	}
 	if d.LID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - No GL Account with Name or AccountNumber = %s", funcname, lineno, sa[LID])
+		errMsg := fmt.Sprintf("No GL Account with Name or AccountNumber = %s", sa[LID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, LID, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -90,7 +96,8 @@ func CreateDepositoriesFromCSV(ctx context.Context, sa []string, lineno int) (in
 	//-------------------------------------------------------------------
 	d.Name = strings.TrimSpace(sa[Name])
 	if len(d.Name) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - no name for Depository. Please supply a name", funcname, lineno)
+		errMsg := fmt.Sprintf("no name for Depository. Please supply a name")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -98,21 +105,20 @@ func CreateDepositoriesFromCSV(ctx context.Context, sa []string, lineno int) (in
 	//-------------------------------------------------------------------
 	d.AccountNo = strings.TrimSpace(sa[AccountNo])
 	if len(d.AccountNo) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - no AccountNo for Depository. Please supply AccountNo", funcname, lineno)
+		errMsg := fmt.Sprintf("no AccountNo for Depository. Please supply AccountNo")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AccountNo, -1, errMsg)
 	}
 
-	// TODO(Steve): error handling in this case?
-	dup, _ /*err*/ := rlib.GetDepositoryByAccount(ctx, d.BID, d.AccountNo)
-	/*if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  depository with account number %s already exists", funcname, lineno, d.AccountNo)
-	}*/
+	dup, _ := rlib.GetDepositoryByAccount(ctx, d.BID, d.AccountNo)
 	if dup.DEPID != 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  depository with account number %s already exists", funcname, lineno, d.AccountNo)
+		errMsg := fmt.Sprintf("depository with account number %s already exists", d.AccountNo)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AccountNo, -1, errMsg)
 	}
 
 	_, err = rlib.InsertDepository(ctx, &d)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error inserting depository: %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting depository: %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }
