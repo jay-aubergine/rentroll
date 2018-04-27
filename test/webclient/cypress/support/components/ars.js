@@ -6,7 +6,7 @@ const FORM = "arsForm";
 const MODULE = "ar";
 
 // Below configurations are in use while performing tests via roller_spec.js for AIR Roller application
-// For Module: Account Rules
+// For Module: Deposit accounts
 export let conf = {
     grid: GRID,
     form: FORM,
@@ -20,5 +20,6 @@ export let conf = {
     buttonNamesInDetailForm: ["save", "saveadd", "delete"],
     skipColumns: [],
     skipFields: ["ApplyRcvAccts", "RAIDrqd", "PriorToRAStart", "PriorToRAStop"], //TODO(Akshay): Write UI test for checkboxes
-    primaryId: "ARID"
+    primaryId: "ARID",
+    fixtureFile: "accountRules.json"
 };
