@@ -66,10 +66,12 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	if len(des) > 0 {
 		b, err = rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 	}
 
@@ -81,10 +83,12 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	if len(rpname) > 0 {
 		err = rlib.GetRatePlanByName(ctx, b.BID, rpname, &rp)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error while getting RatePlan name(%s): %s", funcname, lineno, rpname, err.Error())
+			errMsg := fmt.Sprintf("error while getting RatePlan name(%s): %s", sa[RPName], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RPName, -1, errMsg)
 		}
 		if rp.RPID < 1 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - RatePlan named %s not found", funcname, lineno, rpname)
+			errMsg := fmt.Sprintf("RatePlan named %s not found", sa[RPName])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RPName, -1, errMsg)
 		}
 	}
 
@@ -99,7 +103,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	dt := sa[DtStart]
 	a.DtStart, err = rlib.StringToDate(dt)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid start date:  %s", funcname, lineno, sa[DtStart])
+		errMsg := fmt.Sprintf("invalid start date:  %s", sa[DtStart])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DtStart, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -108,7 +113,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	dt = sa[DtStop]
 	a.DtStop, err = rlib.StringToDate(dt)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid stop date:  %s", funcname, lineno, sa[DtStop])
+		errMsg := fmt.Sprintf("invalid stop date:  %s", sa[DtStop])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DtStop, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -116,7 +122,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	//-------------------------------------------------------------------
 	a.FeeAppliesAge, err = rlib.IntFromString(sa[FeeAppliesAge], "Invalid FeeAppliesAge")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: lineno %d  -  Invalid number: %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("Invalid number: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, FeeAppliesAge, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -124,7 +131,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	//-------------------------------------------------------------------
 	a.MaxNoFeeUsers, err = rlib.IntFromString(sa[MaxNoFeeUsers], "Invalid MaxNoFeeUsers")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: lineno %d  -  Invalid number: %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("Invalid number: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, MaxNoFeeUsers, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -132,7 +140,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	//-------------------------------------------------------------------
 	a.AdditionalUserFee, errmsg = rlib.FloatFromString(sa[AdditionalUserFee], "Invalid Additional User Fee")
 	if len(errmsg) > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: lineno %d  -  Invalid number: %s", funcname, lineno, sa[AdditionalUserFee])
+		errMsg := fmt.Sprintf("Invalid number: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AdditionalUserFee, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -140,7 +149,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	//-------------------------------------------------------------------
 	a.CancellationFee, errmsg = rlib.FloatFromString(sa[CancellationFee], "Invalid Cancellation Fee")
 	if len(errmsg) > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: lineno %d  -  Invalid number: %s", funcname, lineno, sa[CancellationFee])
+		errMsg := fmt.Sprintf("Invalid number: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, CancellationFee, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -159,7 +169,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 			case "hide":
 				a.FLAGS |= rlib.FlRTRRefHide // do not show this rate plan to users
 			default:
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Unrecognized export flag: %s", funcname, lineno, ssa[i])
+				errMsg := fmt.Sprintf("Unrecognized export flag: %s", ssa[i])
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Flags, i, errMsg)
 			}
 		}
 	}
@@ -170,7 +181,8 @@ func CreateRatePlanRef(ctx context.Context, sa []string, lineno int) (int, error
 	a.RPID = rp.RPID
 	_, err = rlib.InsertRatePlanRef(ctx, &a)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: lineno %d  - error inserting RatePlanRef = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting RatePlanRef = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }

@@ -51,10 +51,12 @@ func CreatePaymentTypeFromCSV(ctx context.Context, sa []string, lineno int) (int
 	if len(des) > 0 {
 		b, err := rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if b.BID < 1 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Business named %s not found", funcname, lineno, des)
+			errMsg := fmt.Sprintf("Business named %s not found", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		pt.BID = b.BID
 	}
@@ -65,7 +67,8 @@ func CreatePaymentTypeFromCSV(ctx context.Context, sa []string, lineno int) (int
 	// TODO(Steve): ignore error?
 	_ = rlib.GetPaymentTypeByName(ctx, pt.BID, pt.Name, &dup)
 	if dup.PMTID > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Skipping because payment type named %s already exists", funcname, lineno, pt.Name)
+		errMsg := fmt.Sprintf("Skipping because payment type named %s already exists", pt.Name)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -73,7 +76,8 @@ func CreatePaymentTypeFromCSV(ctx context.Context, sa []string, lineno int) (int
 	//-------------------------------------------------------------------
 	_, err = rlib.InsertPaymentType(ctx, &pt)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting PaymentType = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting PaymentType = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	return 0, nil

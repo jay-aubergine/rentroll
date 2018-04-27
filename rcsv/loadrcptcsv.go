@@ -3,7 +3,6 @@ package rcsv
 import (
 	"context"
 	"fmt"
-	"os"
 	"rentroll/rlib"
 	"strings"
 	"time"
@@ -69,8 +68,7 @@ func GenerateReceiptAllocations(ctx context.Context, rcpt *rlib.Receipt, raid in
 		a.BID = rcpt.BID
 		_, err = rlib.InsertReceiptAllocation(ctx, &a)
 		if err != nil {
-			fmt.Printf("GenerateReceiptAllocations: Error inserting ReceiptAllocation: %s\n", err.Error())
-			os.Exit(1)
+			return fmt.Errorf("GenerateReceiptAllocations: Error inserting ReceiptAllocation: %s", err.Error())
 		}
 		rcpt.RA = append(rcpt.RA, a)
 	}
@@ -133,15 +131,18 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	if len(bud) > 0 {
 		b1, err := rlib.GetBusinessByDesignation(ctx, bud)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, bud, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		r.BID = b1.BID
 		err = rlib.GetXBusiness(ctx, r.BID, &xbiz)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business BID(%d): %s", funcname, lineno, r.BID, err.Error())
+			errMsg := fmt.Sprintf("error while getting business BID(%d): %s", r.BID, err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 	}
 
@@ -150,19 +151,24 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	payors, err := CSVLoaderTransactantList(ctx, r.BID, sa[TCID])
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error: %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("error: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, TCID, -1, errMsg)
 	}
-	if len(payors) > 1 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - only one payor can be assigned: %s", funcname, lineno, sa[TCID])
+	// here we are expecting only one payor
+	if len(payors) != 1 {
+		errMsg := fmt.Sprintf("only one payor can be assigned: %s", sa[TCID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, TCID, -1, errMsg)
 	}
 	if payors[0].TCID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - payor cannot be found: %s", funcname, lineno, sa[TCID])
+		errMsg := fmt.Sprintf("payor cannot be found: %s", sa[TCID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, TCID, -1, errMsg)
 	}
 	r.TCID = payors[0].TCID
 
 	pmtTypes, err := rlib.GetPaymentTypesByBusiness(ctx, r.BID)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error while getting payment types for BID(%d): %s", funcname, lineno, r.BID, err.Error())
+		errMsg := fmt.Sprintf("error while getting payment types for BID(%d): %s", r.BID, err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -172,10 +178,12 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 
 	ra, err := rlib.GetRentalAgreement(ctx, raid)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error loading Rental Agreement %s, err = %v", funcname, lineno, sa[RAID], err)
+		errMsg := fmt.Sprintf("error loading Rental Agreement %s, err = %v", sa[RAID], err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RAID, -1, errMsg)
 	}
 	if ra.RAID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error loading Rental Agreement %s", funcname, lineno, sa[RAID])
+		errMsg := fmt.Sprintf("error loading Rental Agreement %s", sa[RAID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RAID, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -184,7 +192,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	r.PMTID, _ = rlib.IntFromString(sa[PMTID], "Payment type is invalid")
 	_, ok := pmtTypes[r.PMTID]
 	if !ok {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  Payment type is invalid: %s", funcname, lineno, sa[PMTID])
+		errMsg := fmt.Sprintf("Payment type is invalid: %s", sa[PMTID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, PMTID, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -192,7 +201,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	r.DEPID, err = rlib.IntFromString(sa[DEPID], "Depository ID is invalid")
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  Depository ID is invalid: %s", funcname, lineno, sa[DEPID])
+		errMsg := fmt.Sprintf("Depository ID is invalid: %s", sa[DEPID])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DEPID, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -200,7 +210,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	dt, err := rlib.StringToDate(sa[Dt])
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  invalid rlib.Receipt date:  %s", funcname, lineno, sa[Dt])
+		errMsg := fmt.Sprintf("invalid rlib.Receipt date:  %s", sa[Dt])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Dt, -1, errMsg)
 	}
 	r.Dt = dt
 
@@ -221,7 +232,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	if len(s) > 0 {
 		rule, err := rlib.GetARByName(ctx, r.BID, s)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not load AR named %s: %s", funcname, lineno, s, err.Error())
+			errMsg := fmt.Sprintf("Could not load AR named %s: %s", sa[AR], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AR, -1, errMsg)
 		}
 		r.ARID = rule.ARID
 	}
@@ -237,7 +249,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	// Make sure everything that needs to be set actually got set...
 	//-------------------------------------------------------------------
 	if len(r.AcctRuleApply) == 0 || r.PMTID == 0 || r.Amount == 0 || r.BID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("Skipping this record")
+		errMsg := fmt.Sprintf("Skipping this record")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -246,12 +259,14 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	// TODO(Steve): ignore error?
 	rdup, _ := rlib.GetReceiptDuplicate(ctx, &r.Dt, r.Amount, r.DocNo)
 	if rdup.RCPTID != 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - this is a duplicate of an existing receipt: %s", funcname, lineno, rdup.IDtoString())
+		errMsg := fmt.Sprintf("this is a duplicate of an existing receipt: %s", rdup.IDtoString())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	rcptid, err := rlib.InsertReceipt(ctx, &r)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error inserting receipt: %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting receipt: %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	r.RCPTID = rcptid
 
@@ -264,7 +279,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 		_ = rlib.DeleteReceipt(ctx, r.RCPTID)
 		// TODO(Steve): ignore error?
 		_ = rlib.DeleteReceiptAllocations(ctx, r.RCPTID)
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error processing receipt: %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("error processing receipt: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	// fmt.Printf("Completed generating receipt %d.\n", r.RCPTID)
@@ -276,11 +292,13 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 		// fmt.Printf("Checking receipt allocation: %#v\n", r.RA[i])
 		a, err := rlib.GetAssessment(ctx, r.RA[i].ASMID)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error marking assessments as paid: %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error marking assessments as paid: %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		// fmt.Printf("a.FLAGS = 0x%x\n", a.FLAGS)
 		if a.FLAGS&1<<0 != 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  assessment %d is already marked as paid", funcname, lineno, a.ASMID)
+			errMsg := fmt.Sprintf("assessment %d is already marked as paid", a.ASMID)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 	//-------------------------------------------------------------------
@@ -289,12 +307,14 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	for i := 0; i < len(r.RA); i++ {
 		a, err := rlib.GetAssessment(ctx, r.RA[i].ASMID)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error marking assessments as paid: %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error marking assessments as paid: %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		a.FLAGS |= 1 << 0 // bit 0 is the "paid" flag
 		err = rlib.UpdateAssessment(ctx, &a)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error marking assessments as paid: %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error marking assessments as paid: %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 
@@ -303,7 +323,8 @@ func CreateReceiptsFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	_, err = rlib.ProcessNewReceipt(ctx, Rcsv.Xbiz, &Rcsv.DtStart, &Rcsv.DtStop, &r)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error while processing new receipt: %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("error while processing new receipt: %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	return 0, nil

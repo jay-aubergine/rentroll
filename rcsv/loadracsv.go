@@ -81,10 +81,12 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	if len(cmpdes) > 0 {
 		b2, err := rlib.GetBusinessByDesignation(ctx, cmpdes)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, cmpdes, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if b2.BID == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - could not find rlib.Business named %s", funcname, lineno, cmpdes)
+			errMsg := fmt.Sprintf("could not find rlib.Business named %s", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		ra.BID = b2.BID
 	}
@@ -96,10 +98,12 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	if len(des) > 0 {
 		b1, err := rlib.GetRentalAgreementByRATemplateName(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error while getting ra template %s: %s", funcname, lineno, sa[RATemplateName], err.Error())
+			errMsg := fmt.Sprintf("error while getting ra template %s: %s", sa[RATemplateName], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RATemplateName, -1, errMsg)
 		}
 		if len(b1.RATemplateName) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - ra template %s does not exist", funcname, lineno, sa[RATemplateName])
+			errMsg := fmt.Sprintf("ra template %s does not exist", sa[RATemplateName])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RATemplateName, -1, errMsg)
 		}
 		ra.RATID = b1.RATID
 	}
@@ -110,7 +114,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	dfltStart := sa[AgreementStart]
 	DtStart, err := rlib.StringToDate(dfltStart)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid agreement start date:  %s", funcname, lineno, sa[AgreementStart])
+		errMsg := fmt.Sprintf("invalid agreement start date:  %s", sa[AgreementStart])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AgreementStart, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -119,7 +124,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	dfltStop := sa[AgreementStop]
 	DtStop, err := rlib.StringToDate(dfltStop)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid agreement stop date:  %s", funcname, lineno, sa[AgreementStop])
+		errMsg := fmt.Sprintf("invalid agreement stop date:  %s", sa[AgreementStop])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AgreementStop, -1, errMsg)
 	}
 	ra.AgreementStop = DtStop
 
@@ -134,31 +140,36 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	if len(sa[PossessionStart]) > 0 {
 		ra.PossessionStart, err = rlib.StringToDate(sa[PossessionStart])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid possession start date:  %s", funcname, lineno, sa[PossessionStart])
+			errMsg := fmt.Sprintf("invalid possession start date:  %s", sa[PossessionStart])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, PossessionStart, -1, errMsg)
 		}
 	}
 	if len(sa[PossessionStop]) > 0 {
 		ra.PossessionStop, err = rlib.StringToDate(sa[PossessionStop])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid possession stop date:  %s", funcname, lineno, sa[PossessionStop])
+			errMsg := fmt.Sprintf("invalid possession stop date:  %s", sa[PossessionStop])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, PossessionStop, -1, errMsg)
 		}
 	}
 	if len(sa[RentStart]) > 0 {
 		ra.RentStart, err = rlib.StringToDate(sa[RentStart])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid Rent start date:  %s", funcname, lineno, sa[RentStart])
+			errMsg := fmt.Sprintf("invalid Rent start date:  %s", sa[RentStart])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentStart, -1, errMsg)
 		}
 	}
 	if len(sa[RentStop]) > 0 {
 		ra.RentStop, err = rlib.StringToDate(sa[RentStop])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid Rent stop date:  %s", funcname, lineno, sa[RentStop])
+			errMsg := fmt.Sprintf("invalid Rent stop date:  %s", sa[RentStop])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentStop, -1, errMsg)
 		}
 	}
 	if len(sa[RentCycleEpoch]) > 0 {
 		ra.RentCycleEpoch, err = rlib.StringToDate(sa[RentCycleEpoch])
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid Rent cycle epoch date:  %s", funcname, lineno, sa[RentCycleEpoch])
+			errMsg := fmt.Sprintf("invalid Rent cycle epoch date:  %s", sa[RentCycleEpoch])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentCycleEpoch, -1, errMsg)
 		}
 	}
 
@@ -184,7 +195,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	if len(s) > 0 {
 		i, err := strconv.Atoi(s)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - UnspecifiedAdults value is invalid: %s", funcname, lineno, s)
+			errMsg := fmt.Sprintf("UnspecifiedAdults value is invalid: %s", sa[UnspecifiedAdults])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, UnspecifiedAdults, -1, errMsg)
 		}
 		ra.UnspecifiedAdults = int64(i)
 	}
@@ -192,7 +204,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	if len(s) > 0 {
 		i, err := strconv.Atoi(s)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - UnspecifiedChildren value is invalid: %s", funcname, lineno, s)
+			errMsg := fmt.Sprintf("UnspecifiedChildren value is invalid: %s", sa[UnspecifiedChildren])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, UnspecifiedChildren, -1, errMsg)
 		}
 		ra.UnspecifiedChildren = int64(i)
 	}
@@ -204,7 +217,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	if len(s) > 0 {
 		i, err := strconv.Atoi(s)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Renewal value is invalid: %s", funcname, lineno, s)
+			errMsg := fmt.Sprintf("Renewal value is invalid: %s", sa[Renewal])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Renewal, -1, errMsg)
 		}
 		ra.Renewal = int64(i)
 	}
@@ -222,17 +236,19 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 		for i := 0; i < len(ss); i++ {
 			sss := strings.Split(ss[i], ",")
 			if len(sss) != 2 {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Badly formatted string: %s . Format for each semicolon delimited part must be RentableName,ContractRent", funcname, lineno, ss)
-
+				errMsg := fmt.Sprintf("Badly formatted string: %s . Format for each semicolon delimited part must be RentableName,ContractRent", ss)
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentableSpec, i, errMsg)
 			}
 			var rar rlib.RentalAgreementRentable
 			rnt, err := rlib.GetRentableByName(ctx, sss[0], ra.BID)
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not load rentable named: %s  err = %s", funcname, lineno, sss[0], err.Error())
+				errMsg := fmt.Sprintf("Could not load rentable named: %s  err = %s", sss[0], err.Error())
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentableSpec, i, errMsg)
 			}
 			x, err := strconv.ParseFloat(strings.TrimSpace(sss[1]), 64)
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid amount:  %s", funcname, lineno, sss[1])
+				errMsg := fmt.Sprintf("Invalid amount: %s", sss[1])
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentableSpec, i, errMsg)
 			}
 			rar.RID = rnt.RID
 			rar.RARDtStart = DtStart
@@ -251,7 +267,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 		nl.BID = ra.BID
 		nl.NLID, err = rlib.InsertNoteList(ctx, &nl)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error creating NoteList = %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error creating NoteList = %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		var n rlib.Note
 		n.Comment = note
@@ -260,7 +277,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 		n.NLID = nl.NLID
 		_, err = rlib.InsertNote(ctx, &n)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error creating NoteList = %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error creating NoteList = %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Notes, -1, errMsg)
 		}
 		ra.NLID = nl.NLID
 	}
@@ -273,10 +291,10 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 		// TODO(Steve): ignore error?
 		rra, _ := rlib.GetAgreementsForRentable(ctx, m[i].RID, &ra.AgreementStart, &ra.AgreementStop)
 		for j := 0; j < len(rra); j++ {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s:: Rentable %s is already included in Rental Agreement %s from %s to %s",
-				funcname, lineno, RentableAlreadyRented,
-				rlib.IDtoString("R", rra[j].RID), rlib.IDtoString("RA", rra[j].RAID),
+			errMsg := fmt.Sprintf("%s:: Rentable %s is already included in Rental Agreement %s from %s to %s",
+				RentableAlreadyRented, rlib.IDtoString("R", rra[j].RID), rlib.IDtoString("RA", rra[j].RAID),
 				rra[j].RARDtStart.Format(rlib.RRDATEFMT4), rra[j].RARDtStop.Format(rlib.RRDATEFMT4))
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 
@@ -284,7 +302,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	// Validate that we have at least one payor...
 	//-----------------------------------------------
 	if len(payors) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - No valid payors for this rental agreement", funcname, lineno)
+		errMsg := fmt.Sprintf("No valid payors for this rental agreement")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	//------------------------------------
@@ -292,7 +311,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	//-----------------------------------
 	RAID, err := rlib.InsertRentalAgreement(ctx, &ra)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting rlib.RentalAgreement = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting rlib.RentalAgreement = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	var lm rlib.LedgerMarker
 	lm.Dt = ra.AgreementStart
@@ -320,7 +340,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 		}
 		_, err = rlib.InsertLedgerMarker(ctx, &rlm)
 		if nil != err {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting Rentable LedgerMarker = %v", funcname, lineno, err)
+			errMsg := fmt.Sprintf("error inserting Rentable LedgerMarker = %v", err)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 
 		//------------------------------
@@ -331,7 +352,8 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 			users[j].BID = ra.BID
 			_, err := rlib.InsertRentableUser(ctx, &users[j])
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting RentableUser = %v", funcname, lineno, err)
+				errMsg := fmt.Sprintf("error inserting RentableUser = %v", err)
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 			}
 		}
 	}
@@ -342,7 +364,11 @@ func CreateRentalAgreement(ctx context.Context, sa []string, lineno int) (int, e
 	for i := 0; i < len(payors); i++ {
 		payors[i].RAID = RAID
 		payors[i].BID = ra.BID
-		rlib.InsertRentalAgreementPayor(ctx, &payors[i])
+		_, err := rlib.InsertRentalAgreementPayor(ctx, &payors[i])
+		if err != nil {
+			errMsg := fmt.Sprintf("error inserting RentablePayor = %v", err)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
+		}
 	}
 	return 0, nil
 }

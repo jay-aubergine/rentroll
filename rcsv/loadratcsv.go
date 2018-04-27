@@ -49,10 +49,12 @@ func CreateRentalAgreementTemplate(ctx context.Context, sa []string, lineno int)
 	if len(des) > 0 {                  // make sure it's not empty
 		b1, err := rlib.GetBusinessByDesignation(ctx, des) // see if we can find the biz
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		a.BID = b1.BID
 	}
@@ -65,14 +67,16 @@ func CreateRentalAgreementTemplate(ctx context.Context, sa []string, lineno int)
 		// TODO(Steve): ignore error?
 		a1, _ := rlib.GetRentalAgreementByRATemplateName(ctx, des)
 		if len(a1.RATemplateName) > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - RentalAgreementTemplate with RATemplateName %s already exists", funcname, lineno, des)
+			errMsg := fmt.Sprintf("RentalAgreementTemplate with RATemplateName %s already exists", sa[RATemplateName])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RATemplateName, -1, errMsg)
 		}
 	}
 
 	a.RATemplateName = des
 	_, err = rlib.InsertRentalAgreementTemplate(ctx, &a)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error while inserting RentalAgreementTemplate with RATemplateName %s: %s", funcname, lineno, a.RATemplateName, err.Error())
+		errMsg := fmt.Sprintf("error while inserting RentalAgreementTemplate with RATemplateName %s: %s", a.RATemplateName, err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RATemplateName, -1, errMsg)
 	}
 	return 0, nil
 }

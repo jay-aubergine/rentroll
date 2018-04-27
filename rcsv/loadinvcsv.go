@@ -54,10 +54,12 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	if len(bud) > 0 {
 		b1, err := rlib.GetBusinessByDesignation(ctx, bud)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error while getting business by designation(%s), Error: %s", funcname, lineno, sa[BUD], err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Business with designation %s does not exist", funcname, lineno, sa[BUD])
+			errMsg := fmt.Sprintf("Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		inv.BID = b1.BID
 	}
@@ -67,7 +69,8 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	inv.Dt, err = rlib.StringToDate(sa[Date])
 	if err != nil {
-		fmt.Printf("%s: line %d - invalid start date:  %s\n", funcname, lineno, sa[Date])
+		errMsg := fmt.Sprintf("invalid start date:  %s", sa[Date])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Date, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -83,7 +86,8 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	inv.DtDue, err = rlib.StringToDate(sa[DateDue])
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid due date:  %s", funcname, lineno, sa[DateDue])
+		errMsg := fmt.Sprintf("invalid due date:  %s", sa[DateDue])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DateDue, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -102,26 +106,29 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	s := strings.TrimSpace(sa[AssessmentSpec])
 	ssa := strings.Split(s, ",")
 	if len(ssa) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - no assessments found. You must supply at least one assessment", funcname, lineno)
+		errMsg := fmt.Sprintf("no assessments found. You must supply at least one assessment")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AssessmentSpec, -1, errMsg)
 	}
 	RAID := int64(0) // initialize as unset...
 	for i := 0; i < len(ssa); i++ {
 		id := CSVLoaderGetASMID(ssa[i])
 		if 0 == id {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - invalid assessment number: %s", funcname, lineno, ssa[i])
+			errMsg := fmt.Sprintf("invalid assessment number: %s", ssa[i])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AssessmentSpec, i, errMsg)
 		}
 		asmts = append(asmts, id)
 		// load each assessment so that we can total the amount and see if it matches Amount
 		a, err := rlib.GetAssessment(ctx, id)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error getting Assessment %d: %v", funcname, lineno, id, err)
+			errMsg := fmt.Sprintf("error getting Assessment %d: %v", id, err)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AssessmentSpec, i, errMsg)
 		}
 		if RAID == 0 { // if RAID has not been set...
 			RAID = a.RAID // ...set it now
 		}
 		if RAID != a.RAID { // the RAID needs to be the same for every assessment, if not it's an error
-			serr := fmt.Sprintf("%s: line %d -  Assessment %d belongs to Rental Agreement %d.\n", funcname, lineno, a.ASMID, a.RAID)
-			return CsvErrorSensitivity, fmt.Errorf("%s\tAll Assessments must belong to the same Rental Agreement", serr)
+			errMsg := fmt.Sprintf("Assessment %d belongs to Rental Agreement %d.\n\tAll Assessments must belong to the same Rental Agreement", a.ASMID, a.RAID)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AssessmentSpec, i, errMsg)
 		}
 
 		tot += a.Amount
@@ -132,7 +139,8 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	// build the payor list
 	m, err := rlib.GetRentalAgreementPayorsInRange(ctx, RAID, &inv.Dt, &inv.DtDue) // these are the main payors
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  Error while getting agreement payors for RAID(%d), inv.Dt(%q), inv.DtDue(%q). Error: %s", funcname, lineno, RAID, inv.Dt, inv.DtDue, err.Error())
+		errMsg := fmt.Sprintf("Error while getting agreement payors for RAID(%d), inv.Dt(%q), inv.DtDue(%q). Error: %s", RAID, inv.Dt, inv.DtDue, err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	// for i := 0; i < len(t); i++ {                                 // if there are any additional people that should receive the invoice...
 	// 	var a rlib.RentalAgreementPayor // add them...
@@ -140,16 +148,20 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 	// 	m = append(m, a)                // in this array
 	// }
 
-	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error getting Rental Agreement %d: %v", funcname, lineno, RAID, err)
-	}
+	// TODO(Jay): code for loading transactant by sa[PayorSpec] is commented but below error check is not commented
+	// still need to verify
+	// if err != nil {
+	// 	errMsg := fmt.Sprintf("error getting Rental Agreement %d: %v", RAID, err)
+	// 	return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
+	// }
 
 	//-------------------------------------------------------------------
 	// We have all we need. Write the records.  First, the Invoice itself
 	//-------------------------------------------------------------------
 	id, err := rlib.InsertInvoice(ctx, &inv)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error inserting invoice: %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting invoice: %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	// Next, its associated Assessments
 	for i := 0; i < len(asmts); i++ {
@@ -161,9 +173,11 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 		if nil != err {
 			err = rlib.DeleteInvoice(ctx, id)
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error deleting invoice(%d) : %v", funcname, lineno, id, err.Error())
+				errMsg := fmt.Sprintf("error deleting invoice(%d) : %v", id, err.Error())
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 			}
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error inserting invoice part: %v", funcname, lineno, err)
+			errMsg := fmt.Sprintf("error inserting invoice part: %v", err)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 	// Finally, the payors
@@ -176,9 +190,11 @@ func CreateInvoicesFromCSV(ctx context.Context, sa []string, lineno int) (int, e
 		if nil != err {
 			err = rlib.DeleteInvoice(ctx, id)
 			if err != nil {
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error deleting invoice(%d) : %v", funcname, lineno, id, err.Error())
+				errMsg := fmt.Sprintf("error deleting invoice(%d) : %v", id, err.Error())
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 			}
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d -  error inserting invoice payor: %v", funcname, lineno, err)
+			errMsg := fmt.Sprintf("error inserting invoice payor: %v", err)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 	return 0, nil

@@ -52,16 +52,19 @@ func CreateRatePlans(ctx context.Context, sa []string, lineno int) (int, error) 
 	if len(des) > 0 {
 		b1, err := rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, rlib.Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("rlib.Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		rp.BID = b1.BID
 	}
 	rp.Name = strings.TrimSpace(sa[1])
 	if len(rp.Name) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - No Name found for the RatePlan", funcname, lineno)
+		errMsg := fmt.Sprintf("No Name found for the RatePlan")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 	}
 	// need to check for another RatePlan of the same name
 
@@ -78,7 +81,8 @@ func CreateRatePlans(ctx context.Context, sa []string, lineno int) (int, error) 
 			case "Sabre":
 				FLAGS |= rlib.FlRatePlanSabre
 			default:
-				return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Unrecognized export flag: %s", funcname, lineno, ssa[i])
+				errMsg := fmt.Sprintf("Unrecognized export flag: %s", ssa[i])
+				return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Exports, i, errMsg)
 			}
 		}
 	}
@@ -87,7 +91,8 @@ func CreateRatePlans(ctx context.Context, sa []string, lineno int) (int, error) 
 
 	rpid, err := rlib.InsertRatePlan(ctx, &rp)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error inserting RatePlan.  err = %s", funcname, lineno, err.Error())
+		errMsg := fmt.Sprintf("Error inserting RatePlan.  err = %s", err.Error())
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	// Now add the FLAGS as a custom attribute to the RatePlan
@@ -99,7 +104,8 @@ func CreateRatePlans(ctx context.Context, sa []string, lineno int) (int, error) 
 	c.Value = fmt.Sprintf("%d", FLAGS)
 	cid, err := rlib.InsertCustomAttribute(ctx, &c)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not insert CustomAttribute. err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not insert CustomAttribute. err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	cr.ElementType = rlib.ELEMRATEPLAN
 	cr.ID = rpid
@@ -107,7 +113,8 @@ func CreateRatePlans(ctx context.Context, sa []string, lineno int) (int, error) 
 	cr.CID = cid
 	_, err = rlib.InsertCustomAttributeRef(ctx, &cr)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Could not insert CustomAttributeRef. err = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("Could not insert CustomAttributeRef. err = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }

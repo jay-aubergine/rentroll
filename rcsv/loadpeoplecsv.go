@@ -238,10 +238,12 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(des) > 0 { // make sure it's not empty
 				b1, err := rlib.GetBusinessByDesignation(ctx, des) // see if we can find the biz
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, sa[0], err.Error())
+					errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 				}
 				if len(b1.Designation) == 0 {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Business with designation %s does not exist", funcname, lineno, sa[0])
+					errMsg := fmt.Sprintf("Business with designation %s does not exist", sa[BUD])
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 				}
 				tr.BID = b1.BID
 			}
@@ -249,7 +251,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				ic, err := rlib.YesNoToInt(s)
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - IsCompany value is invalid: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("IsCompany value is invalid: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, IsCompany, -1, errMsg)
 				}
 				tr.IsCompany = int64(ic)
 			}
@@ -263,7 +266,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				i, err := strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Points value is invalid: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Points value is invalid: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Points, -1, errMsg)
 				}
 				t.Points = int64(i)
 			}
@@ -271,7 +275,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				i, err := strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - AccountRep value is invalid: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("AccountRep value is invalid: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, AccountRep, -1, errMsg)
 				}
 				p.AccountRep = int64(i)
 			}
@@ -279,7 +284,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				t.DateofBirth, err = rlib.StringToDate(s)
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Bad date of birth: %s, error = %s", funcname, lineno, s, err.Error())
+					errMsg := fmt.Sprintf("Bad date of birth: %s, error = %s", s, err.Error())
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DateofBirth, -1, errMsg)
 				}
 			}
 		case EligibleFutureUser:
@@ -287,28 +293,32 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 				var err error
 				t.EligibleFutureUser, err = rlib.YesNoToInt(s)
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s", funcname, lineno, err.Error())
+					errMsg := fmt.Sprintf(err.Error())
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, EligibleFutureUser, -1, errMsg)
 				}
 			}
 		case SourceSLSID:
 			if len(s) > 0 {
 				var y int64
 				if y, err = strconv.ParseInt(strings.TrimSpace(s), 10, 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid SourceSLSID value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid SourceSLSID value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, SourceSLSID, -1, errMsg)
 				}
 				t.SourceSLSID = y
 			}
 		case CreditLimit:
 			if len(s) > 0 {
 				if x, err = strconv.ParseFloat(strings.TrimSpace(s), 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid Credit Limit value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid Credit Limit value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, CreditLimit, -1, errMsg)
 				}
 				p.CreditLimit = x
 			}
 		case ApplicationFee:
 			if len(s) > 0 {
 				if x, err = strconv.ParseFloat(strings.TrimSpace(s), 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid ApplicationFee value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid ApplicationFee value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ApplicationFee, -1, errMsg)
 				}
 				pr.ApplicationFee = x
 			}
@@ -320,14 +330,16 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				pr.DesiredUsageStartDate, err = rlib.StringToDate(s)
 				if err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid DesiredUsageStartDate value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid DesiredUsageStartDate value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DesiredUsageStartDate, -1, errMsg)
 				}
 			}
 		case RentableTypePreference:
 			if len(s) > 0 {
 				rt, err := rlib.GetRentableTypeByStyle(ctx, s, tr.BID)
 				if err != nil || rt.RTID == 0 {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid DesiredUsageStartDate value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid DesiredUsageStartDate value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentableTypePreference, -1, errMsg)
 				}
 				pr.RentableTypePreference = rt.RTID
 			}
@@ -335,7 +347,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				var y int64
 				if y, err = strconv.ParseInt(strings.TrimSpace(s), 10, 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid Approver UID value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid Approver UID value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Approver, -1, errMsg)
 				}
 				pr.Approver = y
 			}
@@ -343,7 +356,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				var y int64
 				if y, err = strconv.ParseInt(strings.TrimSpace(s), 10, 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid DeclineReasonSLSID value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid DeclineReasonSLSID value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, DeclineReasonSLSID, -1, errMsg)
 				}
 				pr.DeclineReasonSLSID = y
 			}
@@ -359,7 +373,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				var y int64
 				if y, err = strconv.ParseInt(strings.TrimSpace(s), 10, 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid CSAgent ID value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid CSAgent ID value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, CSAgent, -1, errMsg)
 				}
 				pr.CSAgent = y
 			}
@@ -367,7 +382,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				var y int64
 				if y, err = strconv.ParseInt(strings.TrimSpace(s), 10, 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid OutcomeSLSID value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid OutcomeSLSID value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, OutcomeSLSID, -1, errMsg)
 				}
 				pr.OutcomeSLSID = y
 			}
@@ -375,7 +391,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 		case FloatingDeposit:
 			if len(s) > 0 {
 				if x, err = strconv.ParseFloat(strings.TrimSpace(s), 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid FloatingDeposit value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid FloatingDeposit value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, FloatingDeposit, -1, errMsg)
 				}
 				pr.FloatingDeposit = x
 			}
@@ -383,12 +400,14 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 			if len(s) > 0 {
 				var y int64
 				if y, err = strconv.ParseInt(strings.TrimSpace(s), 10, 64); err != nil {
-					return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Invalid RAID value: %s", funcname, lineno, s)
+					errMsg := fmt.Sprintf("Invalid RAID value: %s", s)
+					return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RAID, -1, errMsg)
 				}
 				pr.RAID = y
 			}
 		default:
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Unknown field, column %d", funcname, lineno, i)
+			errMsg := fmt.Sprintf("Unknown field, column %s", s)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, i, -1, errMsg)
 		}
 	}
 
@@ -396,7 +415,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 	// Make sure BID is not 0
 	//-------------------------------------------------------------------
 	if tr.BID == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - No Business found for BUD = %s", funcname, lineno, sa[BUD])
+		errMsg := fmt.Sprintf("No Business found for BUD = %s", sa[BUD])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -405,19 +425,23 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 	if len(tr.PrimaryEmail) > 0 {
 		t1, err := rlib.GetTransactantByPhoneOrEmail(ctx, tr.BID, tr.PrimaryEmail)
 		if err != nil { // if not "no rows error" then MUST return
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error while verifying Transactant with PrimaryEmail address = %s: %s", funcname, lineno, tr.PrimaryEmail, err.Error())
+			errMsg := fmt.Sprintf("Error while verifying Transactant with PrimaryEmail address = %s: %s", tr.PrimaryEmail, err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		if t1.TCID > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s:: Transactant with PrimaryEmail address = %s ", funcname, lineno, DupTransactant, tr.PrimaryEmail)
+			errMsg := fmt.Sprintf("%s:: Transactant with PrimaryEmail address = %s", DupTransactant, tr.PrimaryEmail)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 	if len(tr.CellPhone) > 0 && !ignoreDupPhone {
 		t1, err := rlib.GetTransactantByPhoneOrEmail(ctx, tr.BID, tr.CellPhone)
 		if err != nil { // if not "no rows error" then MUST return
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - Error verifying Transactant with CellPhone number = %s: %s", funcname, lineno, tr.CellPhone, err.Error())
+			errMsg := fmt.Sprintf("Error while verifying Transactant with CellPhone number = %s: %s", tr.CellPhone, err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		if t1.TCID > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - %s:: Transactant with CellPhone number = %s already exists", funcname, lineno, DupTransactant, tr.CellPhone)
+			errMsg := fmt.Sprintf("%s:: Transactant with CellPhone number = %s already exists", DupTransactant, tr.CellPhone)
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 	}
 
@@ -427,10 +451,12 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 	// name.
 	//-------------------------------------------------------------------
 	if tr.IsCompany == 0 && len(tr.FirstName) == 0 && len(tr.LastName) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - FirstName and LastName are required for a person", funcname, lineno)
+		errMsg := fmt.Sprintf("FirstName and LastName are required for a person")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	if tr.IsCompany == 1 && len(tr.CompanyName) == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - CompanyName is required for a company", funcname, lineno)
+		errMsg := fmt.Sprintf("CompanyName is required for a company")
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -441,7 +467,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 		nl.BID = tr.BID
 		nl.NLID, err = rlib.InsertNoteList(ctx, &nl)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error creating NoteList = %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error creating NoteList = %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		var n rlib.Note
 		n.Comment = userNote
@@ -450,7 +477,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 		n.BID = nl.BID
 		_, err = rlib.InsertNote(ctx, &n)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error creating NoteList = %s", funcname, lineno, err.Error())
+			errMsg := fmt.Sprintf("error creating NoteList = %s", err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 		}
 		tr.NLID = nl.NLID // start a notelist for this transactant
 	}
@@ -460,7 +488,8 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 	//-------------------------------------------------------------------
 	tcid, err := rlib.InsertTransactant(ctx, &tr)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting Transactant = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting Transactant = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	tr.TCID = tcid
 	t.TCID = tcid
@@ -471,27 +500,32 @@ func CreatePeopleFromCSV(ctx context.Context, sa []string, lineno int) (int, err
 	pr.BID = tr.BID
 
 	if tcid == 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - after InsertTransactant tcid = %d", funcname, lineno, tcid)
+		errMsg := fmt.Sprintf("after InsertTransactant tcid = %d", tcid)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	// fmt.Printf("tcid = %d\n", tcid)
 	// fmt.Printf("inserting user = %#v\n", t)
 	_, err = rlib.InsertUser(ctx, &t)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting rlib.User = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting rlib.User = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	_, err = rlib.InsertPayor(ctx, &p)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting rlib.Payor = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting rlib.Payor = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	_, err = rlib.InsertProspect(ctx, &pr)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting rlib.Prospect = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting rlib.Prospect = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	errlist := bizlogic.FinalizeTransactant(ctx, &tr)
 	if len(errlist) > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting Transactant LedgerMarker = %s", funcname, lineno, errlist[0].Message)
+		errMsg := fmt.Sprintf("error inserting Transactant LedgerMarker = %s", errlist[0].Message)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }
