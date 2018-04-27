@@ -52,10 +52,12 @@ func CreateSourceCSV(ctx context.Context, sa []string, lineno int) (int, error) 
 	if len(des) > 0 {
 		b, err = rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s): %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if b.BID < 1 {
-			return CsvErrorSensitivity, fmt.Errorf("CreateRentalSpecialtyType: rlib.Business named %s not found", sa[BUD])
+			errMsg := fmt.Sprintf("CreateRentalSpecialtyType: rlib.Business named %s not found", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 	}
 	a.BID = b.BID
@@ -69,7 +71,8 @@ func CreateSourceCSV(ctx context.Context, sa []string, lineno int) (int, error) 
 		// TODO(Steve): ignore error?
 		_ = rlib.GetDemandSourceByName(ctx, b.BID, s, &src)
 		if len(src.Name) > 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d - DemandSource named %s already exists", funcname, lineno, s)
+			errMsg := fmt.Sprintf("DemandSource named %s already exists", sa[Name])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Name, -1, errMsg)
 		}
 	}
 	a.Name = s
@@ -81,7 +84,8 @@ func CreateSourceCSV(ctx context.Context, sa []string, lineno int) (int, error) 
 
 	_, err = rlib.InsertDemandSource(ctx, &a)
 	if err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d - error inserting DemandSource: %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting DemandSource: %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	return 0, nil

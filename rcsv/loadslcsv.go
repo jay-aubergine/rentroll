@@ -75,10 +75,12 @@ func CreateStringList(ctx context.Context, sa []string, lineno int) (int, error)
 	if len(des) > 0 {                                // make sure it's not empty
 		b1, err := rlib.GetBusinessByDesignation(ctx, des) // see if we can find the biz
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s): %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if len(b1.Designation) == 0 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, Business with designation %s does not exist", funcname, lineno, sa[0])
+			errMsg := fmt.Sprintf("Business with designation %s does not exist", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		// if business is changed, write the stringlist
 		if len(bud) > 0 && des != bud {

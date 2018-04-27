@@ -56,10 +56,12 @@ func CreateRentalSpecialty(ctx context.Context, sa []string, lineno int) (int, e
 	if len(des) > 0 {
 		b, err = rlib.GetBusinessByDesignation(ctx, des)
 		if err != nil {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d, error while getting business by designation(%s): %s", funcname, lineno, des, err.Error())
+			errMsg := fmt.Sprintf("error while getting business by designation(%s), error: %s", sa[BUD], err.Error())
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 		if b.BID < 1 {
-			return CsvErrorSensitivity, fmt.Errorf("%s: line %d  - rlib.Business named %s not found", funcname, lineno, des)
+			errMsg := fmt.Sprintf("rlib.Business named %s not found", sa[BUD])
+			return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, BUD, -1, errMsg)
 		}
 	}
 
@@ -68,7 +70,8 @@ func CreateRentalSpecialty(ctx context.Context, sa []string, lineno int) (int, e
 
 	a.Name = strings.TrimSpace(sa[Name])
 	if x, err = strconv.ParseFloat(strings.TrimSpace(sa[Fee]), 64); err != nil {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d  - Invalid floating point number: %s", funcname, lineno, sa[Fee])
+		errMsg := fmt.Sprintf("Invalid floating point number: %s", sa[Fee])
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, Fee, -1, errMsg)
 	}
 	a.Fee = x
 	a.Description = strings.TrimSpace(sa[Description])
@@ -80,7 +83,8 @@ func CreateRentalSpecialty(ctx context.Context, sa []string, lineno int) (int, e
 	// TODO(Steve): ignore error?
 	rsp, _ := rlib.GetRentableSpecialtyTypeByName(ctx, a.BID, a.Name)
 	if rsp.RSPID > 0 {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d  - rlib.Business %s already has a rlib.RentableSpecialty named %s", funcname, lineno, des, a.Name)
+		errMsg := fmt.Sprintf("rlib.Business %s already has a rlib.RentableSpecialty named %s", sa[BUD], a.Name)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 
 	//-------------------------------------------------------------------
@@ -88,7 +92,8 @@ func CreateRentalSpecialty(ctx context.Context, sa []string, lineno int) (int, e
 	//-------------------------------------------------------------------
 	_, err = rlib.InsertRentableSpecialty(ctx, &a)
 	if nil != err {
-		return CsvErrorSensitivity, fmt.Errorf("%s: line %d  - error inserting RentalSpecialty = %v", funcname, lineno, err)
+		errMsg := fmt.Sprintf("error inserting RentalSpecialty = %v", err)
+		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, -1, -1, errMsg)
 	}
 	return 0, nil
 }
