@@ -192,7 +192,6 @@ window.GridMoneyFormat = function (x) {
 // @return  the BID (or `undefined` if not found)
 //-----------------------------------------------------------------------------
 window.getBIDfromBUD = function (BUD) {
-
     var BID;
     for (var i=0; i<app.BizMap.length; i++) {
         if (BUD == app.BizMap[i].BUD) {
@@ -1160,5 +1159,22 @@ window.prepareW2UIStuff = function prepareW2UIStuff(app) {
         app.cycleFreq.forEach(function(freq, index) {
             app.w2ui.listItems.cycleFreq.push({ id: index, text: freq });
         });
+    }
+};
+
+//-----------------------------------------------------------------------------
+// reassignGridRecids -  will reassign the grid record's recid
+//                       in case of record deleted within the grid
+// @params
+//   gridName = w2ui grid component name
+//-----------------------------------------------------------------------------
+window.reassignGridRecids = function(gridName) {
+    if (gridName in w2ui) {
+        var grid = w2ui[gridName];
+        for (var j = 0; j < grid.records.length; j++) {
+            grid.records[j].recid = j + 1;
+        }
+        // need to refresh the grid as it will assign new recid in DOM tr's attribute "recid"
+        grid.refresh();
     }
 };
