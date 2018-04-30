@@ -10,3 +10,6 @@ all: *.go
 
 clean:
 	rm -f conv
+
+secure:
+	@rm -f config.json confdev.json confprod.json

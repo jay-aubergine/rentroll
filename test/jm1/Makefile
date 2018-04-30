@@ -22,3 +22,6 @@ package:
 
 pubsandboxdb:
 	mysqldump --no-defaults rentroll >rentrolldb.sql ; gzip rentrolldb.sql ; /usr/local/accord/bin/deployfile.sh rentrolldb.sql.gz accord/db
+
+secure:
+	@rm -f config.json confdev.json confprod.json

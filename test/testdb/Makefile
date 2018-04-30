@@ -30,3 +30,6 @@ dbbackup:
 
 get:
 	${BASHDIR}/getdb.sh
+
+secure:
+	@rm -f config.json confdev.json confprod.json

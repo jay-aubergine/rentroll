@@ -18,3 +18,7 @@ test:
 package: rrimporters
 	for dir in $(DIRS); do make -C $$dir package;done
 	@echo "*** PACKAGE completed in rrimporters ***"
+
+secure:
+	for dir in $(DIRS); do make -C $${dir} secure;done
+	@rm -f config.json confdev.json confprod.json

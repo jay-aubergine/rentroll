@@ -1188,6 +1188,8 @@ func buildPreparedStatements() {
 	Errcheck(err)
 	RRdb.Prepstmt.DeleteTaskList, err = RRdb.Dbrr.Prepare("DELETE from TaskList WHERE TLID=?")
 	Errcheck(err)
+	RRdb.Prepstmt.DeleteTaskListTasks, err = RRdb.Dbrr.Prepare("DELETE from Task WHERE TLID=?")
+	Errcheck(err)
 
 	//==========================================
 	// TASKDESCRIPTOR
@@ -1212,6 +1214,8 @@ func buildPreparedStatements() {
 	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskListDefinition"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
+	RRdb.Prepstmt.GetAllTaskListDefinitions, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskListDefinition WHERE BID=? AND FLAGS & 1 = 0")
+	Errcheck(err)
 	RRdb.Prepstmt.GetTaskListDefinition, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskListDefinition WHERE TLDID=?")
 	Errcheck(err)
 	RRdb.Prepstmt.GetTaskListDefinitionByName, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskListDefinition WHERE BID=? AND Name=?")

@@ -18,3 +18,6 @@ get:
 	@touch fail
 	../../tools/bashtools/getdb.sh
 	@rm -f fail
+
+secure:
+	@rm -f config.json confdev.json confprod.json
