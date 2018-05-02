@@ -1,54 +1,54 @@
 Test Name:    Business Delete Test
 Test Purpose: Creates many records for a business, then tests DeleteBusinessFromDB to remove them
-Date/Time:    Fri Jan  5 12:11:46 IST 2018
+Date/Time:    Mon Apr 30 17:18:17 IST 2018
 
 Create new database...  successful
-CreatePhonebookLinkedBusiness: line 4 - Invalid Rent Cycle: a
-CreatePhonebookLinkedBusiness: line 5 - Invalid Proration Cycle: nyet
-CreateRentableType: line 8  - rlib.Business named QQQ not found
-CreateRentableType: line 9 - DuplicateRentableType:: rlib.RentableType named CPT already exists
-CreateRentableType: line 10 - Invalid rental frequency: 99
-CreateRentableType: line 11 - Invalid rental proration frequency: 99
-CreateRentableType: line 12 - Proration frequency (7) must be greater than rental frequency (6)
-CreateRentableType: line 13 - Invalid manage to budget flag: nyet
-CreateRentableType: line 14 - Invalid manage to budget flag: nyet
-CreateRentableType: line 15 - Invalid manage to budget flag: 3
-CreateRentableType: line 16 - Stop date (2014-01-01 00:00:00 +0000 UTC) must be after Start date (2016-01-01 00:00:00 +0000 UTC)
-CreateCustomAttributes: line 6 - Type value must be a number from 0 to 4
-CreateCustomAttributes: line 7 - IntFromString: Value cannot be converted to an integer: ab827
-CreateCustomAttributes: line 8 - IntFromString: Value cannot be converted to an unsigned integer: ab827
-CreateRentalSpecialty: line 3  - rlib.Business rex already has a rlib.RentableSpecialty named Lake View
-CreateBuilding: line 5 - rlib.Business with designation bug does not exist
-CreateBuilding: line 6 - invalid rlib.Building number: qe
-CreatePeopleFromCSV: line 12 - DuplicateTransactant:: Transactant with PrimaryEmail address = homerj@springfield.com 
-CreatePeopleFromCSV: line 13 - DuplicateTransactant:: Transactant with PrimaryEmail address = sskinner@sfelementary.com 
-CreatePeopleFromCSV: line 14 - IsCompany value is invalid: 99
-CreateRentables: line 2 - Business with bud aaa does not exist
-CreateRentables: line 3 - Could not load rentable type with style name: QYX
-CreateRentables: line 14 - invalid AssignmentTime number: 9
-CreateRentables: line 15 - invalid AssignmentTime number: 9
-CreateRentables: line 16 - invalid AssignmentTime number: 9
-CreateRentables: line 17 - DuplicateRentable:: Rentable with name "107" already exists. Skipping. 
-CreateRentables: line 18 - Could not load rentable type with style name: XXX
-CreateRentalAgreement: line 10 - ra template RATQQQ does not exist
-CreateRentalAgreement: line 11 - could not find rlib.Business named QWQ
-CreateRentalAgreement:  line 12 - could not find rlib.Transactant with contact information billybob@springfield.com
-CreateRentalAgreement: line 13 - Required Payor field is blank
-CreateRentalAgreement: line 14 - Required User field is blank
-CreateRentalAgreement: line 15 - Required Payor field is blank
-CreateRentalAgreement: line 16 - Required User field is blank
-CreateLedgerMarkers: line 29 - Account already exists: 42999
-CreateLedgerMarkers: line 30 - Account already exists: 42999
-CreateLedgerMarkers: line 31 - Invalid account status: re45gg5
-CreateAssessmentsFromCSV: line 15 - Assessment type is invalid: 0
-CreateAssessmentsFromCSV: line 16 - Assessment type is invalid: 900
-CreateAssessmentsFromCSV: line 17 - rlib.Business with designation XXX does not exist
-CreateAssessmentsFromCSV: line 18 - Skipping this record as the Amount is 0
-CreateAssessmentsFromCSV: line 19 - Skipping this record as the Amount is 0
-CreateReceiptsFromCSV: line 4 - rlib.Business with designation QQQ does not exist
-CreateReceiptsFromCSV: line 5 -  error loading Rental Agreement RA00099991
-CreateReceiptsFromCSV: line 6 -  Payment type is invalid: 999
-CreateReceiptsFromCSV: line 7 -  error processing receipt: GenerateReceiptAllocations: Referenced assessment ID 1999 does not exist
-CreateReceiptsFromCSV: line 8 -  error processing receipt: GenerateReceiptAllocations: Referenced assessment ID 999 does not exist
-ElementType value must be a number from 5 to 13
-Test completed: Fri Jan  5 12:11:59 IST 2018
+CreatePhonebookLinkedBusiness: line 4, column 3 >>> Invalid Rent Cycle: a
+CreatePhonebookLinkedBusiness: line 5, column 4 >>> Invalid Proration Cycle: nyet
+CreateRentableType: line 8, column 1 >>> rlib.Business named QQQ not found
+CreateRentableType: line 9, column 2 >>> DuplicateRentableType:: rlib.RentableType named CPT already exists
+CreateRentableType: line 10, column 4 >>> Invalid rental frequency: 99
+CreateRentableType: line 11, column 5 >>> Invalid rental proration frequency: 99
+CreateRentableType: line 12, column -1 >>> Proration frequency (7) must be greater than rental frequency (6)
+CreateRentableType: line 13, column 7 >>> Invalid manage to budget flag: nyet
+CreateRentableType: line 14, column 7 >>> Invalid manage to budget flag: nyet
+CreateRentableType: line 15, column 7 >>> Invalid manage to budget flag: 3
+CreateRentableType: line 16, column -1 >>> Stop date (2014-01-01 00:00:00 +0000 UTC) must be after Start date (2016-01-01 00:00:00 +0000 UTC)
+CreateCustomAttributes: line 6, column 3 >>> Type value must be a number from 0 to 4
+CreateCustomAttributes: line 7, column 4 >>> IntFromString: Value cannot be converted to an integer: ab827
+CreateCustomAttributes: line 8, column 4 >>> IntFromString: Value cannot be converted to an unsigned integer: ab827
+CreateRentalSpecialty: line 3, column -1 >>> rlib.Business REX already has a rlib.RentableSpecialty named Lake View
+CreateBuilding: line 5, column 1 >>> rlib.Business with designation bug does not exist
+CreateBuilding: line 6, column 2 >>> invalid rlib.Building number: qe
+CreatePeopleFromCSV: line 12, column -1 >>> DuplicateTransactant:: Transactant with PrimaryEmail address = homerj@springfield.com
+CreatePeopleFromCSV: line 13, column -1 >>> DuplicateTransactant:: Transactant with PrimaryEmail address = sskinner@sfelementary.com
+CreatePeopleFromCSV: line 14, column 6 >>> IsCompany value is invalid: 99
+CreateRentables: line 2, column 1 >>> Business with bud aaa does not exist
+CreateRentables: line 3, column 6, item 1 >>> Could not load rentable type with style name: QYX
+CreateRentables: line 14, column 3 >>> invalid AssignmentTime number: 9
+CreateRentables: line 15, column 3 >>> invalid AssignmentTime number: 9
+CreateRentables: line 16, column 3 >>> invalid AssignmentTime number: 9
+CreateRentables: line 17, column 2 >>> DuplicateRentable:: Rentable with name "107" already exists. Skipping.
+CreateRentables: line 18, column 6, item 1 >>> Could not load rentable type with style name: XXX
+CreateRentalAgreement: line 10, column 2 >>> ra template RATQQQ does not exist
+CreateRentalAgreement: line 11, column 1 >>> could not find rlib.Business named QWQ
+CreateRentalAgreement: line 12, column 10, item 1 >>> could not find rlib.Transactant with contact information billybob@springfield.com
+CreateRentalAgreement: line 13, column 10 >>> Required Payor field is blank
+CreateRentalAgreement: line 14, column 11 >>> Required User field is blank
+CreateRentalAgreement: line 15, column 10, item 1 >>> Required Payor field is blank
+CreateRentalAgreement: line 16, column 11, item 1 >>> Required User field is blank
+CreateLedgerMarkers: line 29, column 3 >>> Account already exists: 42999
+CreateLedgerMarkers: line 30, column 3 >>> Account already exists: 42999
+CreateLedgerMarkers: line 31, column 7 >>> Invalid account status: re45gg5
+CreateAssessmentsFromCSV: line 15, column 3 >>> Assessment type is invalid: 0
+CreateAssessmentsFromCSV: line 16, column 3 >>> Assessment type is invalid: 900
+CreateAssessmentsFromCSV: line 17, column 1 >>> rlib.Business with designation XXX does not exist
+CreateAssessmentsFromCSV: line 18, column 11 >>> Skipping this record as there is no AcctRule
+CreateAssessmentsFromCSV: line 19, column 11 >>> Skipping this record as there is no AcctRule
+CreateReceiptsFromCSV: line 4, column 1 >>> rlib.Business with designation QQQ does not exist
+CreateReceiptsFromCSV: line 5, column 3 >>> error loading Rental Agreement RA00099991
+CreateReceiptsFromCSV: line 6, column 4 >>> Payment type is invalid: 999
+CreateReceiptsFromCSV: line 7, column -1 >>> error processing receipt: GenerateReceiptAllocations: Referenced assessment ID 1999 does not exist
+CreateReceiptsFromCSV: line 8, column -1 >>> error processing receipt: GenerateReceiptAllocations: Referenced assessment ID 999 does not exist
+Createrlib.CustomAttributeRefs: line 6, column 2 >>> ElementType value must be a number from 5 to 13
+Test completed: Mon Apr 30 17:18:22 IST 2018

@@ -1,7 +1,7 @@
-CreatePaymentTypeFromCSV: line 2 - Skipping because payment type named Cash already exists
-CreatePaymentTypeFromCSV: line 3 - Skipping because payment type named Check already exists
-CreatePaymentTypeFromCSV: line 4 - Skipping because payment type named VISA already exists
-CreatePaymentTypeFromCSV: line 5 - Skipping because payment type named AMEX already exists
+CreatePaymentTypeFromCSV: line 2, column 2 >>> Skipping because payment type named Cash already exists
+CreatePaymentTypeFromCSV: line 3, column 2 >>> Skipping because payment type named Check already exists
+CreatePaymentTypeFromCSV: line 4, column 2 >>> Skipping because payment type named VISA already exists
+CreatePaymentTypeFromCSV: line 5, column 2 >>> Skipping because payment type named AMEX already exists
 REX Payment Types
 BH Rexford Group, Inc.
 11719 Bee Cave Road

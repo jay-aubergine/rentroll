@@ -1,4 +1,4 @@
-CreateAssessmentsFromCSV: line 2 - Rental agreement 3 could not be found
+CreateAssessmentsFromCSV: line 2, column 7 >>> Rental agreement 3 could not be found
 REX Assessments
 Feb 1, 2017 - Mar 1, 2017
 BH Rexford Group, Inc.
