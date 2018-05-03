@@ -785,21 +785,25 @@ window.formRefreshCallBack = function (w2frm, primary_id, form_header, disable_h
     // keep active form original record
     app.active_form_original = $.extend(true, {}, record);
 
-    // if new record then disable delete button
-    // and format the equivalent header
     var header = "";
-    if (id > 0) {
-        header = form_header.format(id);
-        $(w2frm.box).find("button[name=delete]").removeClass("hidden");
-        $(w2frm.box).find("button[name=reverse]").removeClass("hidden");
-    } else {
-        header = form_header.format("new");
-        $(w2frm.box).find("button[name=delete]").addClass("hidden");
-        $(w2frm.box).find("button[name=reverse]").addClass("hidden");
+    if (form_header) { // if form_header passed then
+        // if new record then disable delete button
+        // and format the equivalent header
+        if (id > 0) {
+            header = form_header.format(id);
+            $(w2frm.box).find("button[name=delete]").removeClass("hidden");
+            $(w2frm.box).find("button[name=reverse]").removeClass("hidden");
+        } else {
+            header = form_header.format("new");
+            $(w2frm.box).find("button[name=delete]").addClass("hidden");
+            $(w2frm.box).find("button[name=reverse]").addClass("hidden");
+        }
     }
 
-    if (!disable_header) {
-        w2frm.header = header;
+    if (typeof disable_header !== "undefined") {
+        if (!disable_header) {
+            w2frm.header = header;
+        }
     }
 };
 
@@ -954,11 +958,11 @@ window.exportItemReportCSV = function (rptname,id,dtStart,dtStop,returnURL) {
 // Download the CSV report for given report name, date range
 //
 // @params
-//   rptname            : report name to be downloaded
-//   dtStart            : Start Date
-//   dtStop             : Stop Date
-//   returnURL          : it true then returns the url otherwise
-//                        downloads the report from built url in separate window
+//   rptname   : report name to be downloaded
+//   dtStart   : Start Date
+//   dtStop    : Stop Date
+//   returnURL : it true then returns the url otherwise
+//               downloads the report from built url in separate window
 //-------------------------------------------------------------------------------
 window.exportReportCSV = function (rptname, dtStart, dtStop, returnURL){
     if (rptname === '') {
