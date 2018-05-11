@@ -93,6 +93,8 @@ type SaveTaskListDef struct {
 	EpochPreDue    rlib.JSONDateTime
 	ChkEpochDue    bool
 	ChkEpochPreDue bool
+	DurWait        int64
+	EmailList      string
 	FLAGS          int64
 	Comment        string
 }
@@ -113,8 +115,8 @@ type SaveTaskListDefinitionInput struct {
 
 // GetTLDResponse is the response to a GetTaskListDefinition request
 type GetTLDResponse struct {
-	Status string       `json:"status"`
-	Record TaskListDefs `json:"record"`
+	Status string          `json:"status"`
+	Record SaveTaskListDef `json:"record"`
 }
 
 // ############################################################################
@@ -345,6 +347,19 @@ func saveTaskListDefinition(w http.ResponseWriter, r *http.Request, d *ServiceDa
 	a.Name = foo.Record.Name
 	a.BID = d.BID
 
+	a.FLAGS &= ^0x6
+	x := int64(0)
+	if a.EpochPreDue.Year() > 1970 {
+		x |= int64(1 << 1)
+	}
+	if a.EpochDue.Year() > 1970 {
+		x |= int64(1 << 2)
+	}
+	a.FLAGS |= x
+
+	rlib.Console("Email = %s\n", foo.Record.EmailList)
+	rlib.Console("DurWait = %d\n", foo.Record.DurWait)
+
 	//----------------------------------------------------------------
 	// Not much business logic to check here.
 	// 1. Ensure that there is a name.
@@ -411,10 +426,10 @@ func getTaskListDefinition(w http.ResponseWriter, r *http.Request, d *ServiceDat
 		return
 	}
 	if a.TLDID > 0 {
-		var gg TaskListDefs
+		var gg SaveTaskListDef
 		rlib.MigrateStructVals(&a, &gg)
-		gg.ChkEpochPreDue = a.EpochPreDue.Year() > 1900
-		gg.ChkEpochDue = a.EpochDue.Year() > 1900
+		gg.ChkEpochPreDue = a.EpochPreDue.Year() > 1970
+		gg.ChkEpochDue = a.EpochDue.Year() > 1970
 		g.Record = gg
 	}
 	g.Status = "success"

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"rentroll/bizlogic"
 	"rentroll/rlib"
 	"rentroll/worker"
 	"sort"
@@ -188,6 +189,9 @@ func SvcUILists(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 
 	// --------------- LIST DOWN rentroll report FLAGS --------------
 	appData["rrFLAGS"] = rrFLAGS
+
+	// --------------- LIST DOWN rentroll report FLAGS --------------
+	appData["arFLAGS"] = bizlogic.ARFLAGS
 
 	// --------------- LIST DOWN ra flow part types --------------
 	appData["raFlowPartTypes"] = raFlowPartTypes

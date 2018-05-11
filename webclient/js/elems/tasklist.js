@@ -7,13 +7,13 @@
     openTaskForm,setInnerHTML,w2popup,ensureSession,dtFormatISOToW2ui,
     createNewTaskList, getBUDfromBID, exportItemReportPDF, exportItemReportCSV,
     popupNewTaskListForm, getTLDs, getCurrentBID, getNewTaskListRecord,
-    closeTaskForm, setTaskButtonsState,
+    closeTaskForm, setTaskButtonsState, renderTaskGridDate,
 */
 
 var TL = {
-    FormWidth: 450,
-    TaskWidth: 400,
-    formBtnsDisabled: false,
+    TaskWidth: 500,             // width of task form over tasklist grid
+    formBtnsDisabled: false,    // indicates whether the tasklist save/delete buttons should be on/off
+    TIME0: '1/1/1970',          // value of time if date control returns an empty string
 };
 
 window.getNewTaskListRecord = function (bid) {
@@ -115,7 +115,6 @@ window.buildTaskListElements = function () {
                 { type: 'button', id: 'pdfexport', icon: 'far fa-file-pdf', tooltip: 'export to PDF' },
                 { type: 'spacer', id: 'bt3'  },
                 { type: 'button', id: 'btnClose',  icon: 'fas fa-times' },
-
             ],
             onClick: function (event) {
                 event.onComplete = function() {
@@ -155,7 +154,10 @@ window.buildTaskListElements = function () {
             { field: 'DtPreDone',    type: 'datetime',  required: false },
             { field: 'FLAGS',        type: 'int',       required: false },
             { field: 'DoneUID',      type: 'int',       required: false },
+            { field: 'DoneName',     type: 'text',      required: false },
             { field: 'PreDoneUID',   type: 'int',       required: false },
+            { field: 'PreDoneName',  type: 'text',      required: false },
+            { field: 'EmailList',    type: 'text',      required: false },
             { field: 'Comment',      type: 'text',      required: false },
             { field: 'CreateTS',     type: 'date',      required: false },
             { field: 'CreateBy',     type: 'int',       required: false },
@@ -166,20 +168,16 @@ window.buildTaskListElements = function () {
             { field: 'ChkDtPreDue',  type: 'checkbox',  required: false },
             { field: 'ChkDtPreDone', type: 'checkbox',  required: false },
         ],
-        onLoad: function(event) {
+        onRefresh: function(event) {
             event.onComplete = function(event) {
                 var r = w2ui.tlsInfoForm.record;
                 if (typeof r.DtPreDue === "undefined") {
                     return;
                 }
-                // r.ChkDtPreDue  = dtFormatISOToW2ui(r.ChkDtPreDue );
-                // r.ChkDtDue     = dtFormatISOToW2ui(r.ChkDtDue );
-                // r.ChkDtDone    = dtFormatISOToW2ui(r.ChkDtDone );
-                // r.ChkDtPreDone = dtFormatISOToW2ui(r.ChkDtPreDone );
                 r.ChkDtPreDue  = taskFormDueDate(r.DtPreDue,  r.ChkDtPreDue,'sDtPreDue','no pre-due date');
                 r.ChkDtDue     = taskFormDueDate(r.DtDue,     r.ChkDtDue,   'sDtDue',   'no due date');
-                r.ChkDtDone    = taskFormDoneDate(r.DtDone,   r.DtDue,   r.ChkDtDone, 'sDtDone', 'tlOverdue');
-                r.ChkDtPreDone = taskFormDoneDate(r.DtPreDone,r.DtPreDue,r.ChkDtPreDone, 'sDtPreDone', 'tlPreOverdue');
+                r.ChkDtDone    = taskFormDoneDate(r.DtDone,   r.DtDue,      r.ChkDtDone,    r.DoneUID,    r.DoneName,    'sDtDone',   'tlDoneName',    'tlOverdue');
+                r.ChkDtPreDone = taskFormDoneDate(r.DtPreDone,r.DtPreDue,   r.ChkDtPreDone, r.PreDoneUID, r.PreDoneName, 'sDtPreDone','tlPreDoneName', 'tlPreOverdue');
             };
         },
         onChange: function(event) {
@@ -213,13 +211,19 @@ window.buildTaskListElements = function () {
             { field: 'TLID',        caption: 'TLID',        size: '35px', sotrable: true, hidden: true},
             { field: 'TaskName',    caption: 'Name',        size: '120px', sotrable: true, hidden: false},
             { field: 'Worker',      caption: 'Worker',      size: '75px', sotrable: true, hidden: false},
-            { field: 'DtPreDue',    caption: 'DtPreDue',    size: '80px', sotrable: true, hidden: false},
-            { field: 'DtPreDone',   caption: 'DtPreDone',   size: '80px', sotrable: true, hidden: false,
-                render: function (record, index, col_index) { if (typeof record == "undefined") {return '';} return taskDateRender(record.DtPreDone); }
+            { field: 'DtPreDue',    caption: 'DtPreDue',    size: '80px', sotrable: true, hidden: false,
+                render: function(record, index, col_index) {return renderTaskGridDate(record.DtPreDue); }
             },
-            { field: 'DtDue',       caption: 'DtDue',       size: '80px', sotrable: true, hidden: false},
+            { field: 'DtPreDone',   caption: 'DtPreDone',   size: '80px', sotrable: true, hidden: false,
+                render: function(record, index, col_index) {return renderTaskGridDate(record.DtPreDone); }
+            },
+            { field: 'DtDue',       caption: 'DtDue',       size: '80px', sotrable: true, hidden: false,
+                render: function(record, index, col_index) {return renderTaskGridDate(record.DtDue); }
+            },
             { field: 'DtDone',      caption: 'DtDone',      size: '80px', sotrable: true, hidden: false,
-                render: function (record, index, col_index) { if (typeof record == "undefined") {return '';} return taskDateRender(record.DtDone); }
+                render: function(record, index, col_index) {
+                    return renderTaskGridDate(record.DtDone); 
+                }
             },
             { field: 'FLAGS',       caption: 'FLAGS',       size: '35px', sotrable: true, hidden: true},
             { field: 'DoneUID',     caption: 'DoneUID',     size: '35px', sotrable: true, hidden: true},
@@ -348,8 +352,8 @@ window.buildTaskListElements = function () {
                 }
                 r.ChkDtPreDue  = taskFormDueDate(r.DtPreDue,  r.ChkDtPreDue,'tskDtPreDue',  'no pre-due date'               );
                 r.ChkDtDue     = taskFormDueDate(r.DtDue,     r.ChkDtDue,   'tskDtDue',     'no due date'                   );
-                r.ChkDtPreDone = taskFormDoneDate(r.DtPreDone,r.DtPreDue,   r.ChkDtPreDone, 'tskDtPreDone',  'tskPreOverdue');
-                r.ChkDtDone    = taskFormDoneDate(r.DtDone,   r.DtDue,      r.ChkDtDone,    'tskDtDone',     'tskOverdue'   );
+                r.ChkDtPreDone = taskFormDoneDate(r.DtPreDone,r.DtPreDue,   r.ChkDtPreDone, r.PreDoneUID, r.TaskPreDoneName, 'tskDtPreDone', 'tskPreDoneName', 'tskPreOverdue');
+                r.ChkDtDone    = taskFormDoneDate(r.DtDone,   r.DtDue,      r.ChkDtDone,    r.DoneUID,    r.TaskDoneName,    'tskDtDone',    'tskDoneName',    'tskOverdue'   );
             };
         },
         onChange: function(event) {
@@ -443,7 +447,7 @@ window.buildTaskListElements = function () {
     });
 
     //------------------------------------------------------------------------
-    //  newTaskForm
+    //  newTaskListForm
     //------------------------------------------------------------------------
     $().w2form({
         name: 'newTaskListForm',
@@ -525,6 +529,25 @@ window.createNewTaskList = function (bid) {
     //-------------------------------------------------------
     getTLDs(bid,popupNewTaskListForm);
 };
+
+
+//-----------------------------------------------------------------------------
+// renderTaskGridDate - if the year is 1970 or less return '', otherwise
+//      return the date string (ds).
+// 
+// @params - ds = date string
+//  
+// @return date string or ''
+//  
+//-----------------------------------------------------------------------------
+window.renderTaskGridDate = function (ds) {
+    var d = new Date(ds);
+    if (d.getFullYear() > 1970) {
+        return ds;
+    } 
+    return '';
+};
+
 
 //-----------------------------------------------------------------------------
 // getTLDs - return the promise object of request to get latest
@@ -632,7 +655,7 @@ window.taskDateRender = function (x) {
     }
     var y = dateFromString(x);
     var yr = y.getFullYear();
-    if ( yr < 2000) {
+    if ( yr <= 1970) {
         return '';
     }
     // return dtTextRender(x,0,0);
@@ -659,27 +682,6 @@ window.openTaskForm = function (bid,tid) {
     w2ui.tlLayout.sizeTo('right', TL.TaskWidth);
     w2ui.tlLayout.show('right');
     w2ui.tlLayout.render();
-
-    // $().w2popup('open', {
-    //     title   : 'Task',
-    //     body    : '<div id="form" style="width: 100%; height: 100%;"></div>',
-    //     style   : 'padding: 15px 0px 0px 0px',
-    //     width   : 600,
-    //     height  : 400,
-    //     showMax : true,
-    //     onToggle: function (event) {
-    //         $(w2ui.taskForm.box).hide();
-    //         event.onComplete = function () {
-    //             $(w2ui.taskForm.box).show();
-    //             w2ui.taskForm.resize();
-    //         };
-    //     },
-    //     onOpen: function (event) {
-    //         event.onComplete = function () {
-    //             $('#w2ui-popup #form').w2render('taskForm');
-    //         };
-    //     }
-    // });
 };
 
 //-----------------------------------------------------------------------------
@@ -737,7 +739,7 @@ window.taskFormDueDate = function (dt,b,id,txt) {
         if (b) {
             s = taskDateRender(dt); 
         } else {
-            s = 'No pre-due date';
+            s = txt;
         }
         setInnerHTML(id,s);
     }
@@ -748,18 +750,24 @@ window.taskFormDueDate = function (dt,b,id,txt) {
 // taskFormDoneDate - form formatting
 // 
 // @params
-//       dt = datetime string
-//       b  = boolean check box value (false = unchecked)
-//      id  = html element id for string update
-//      txt = string for no date value 
+//       dt  = datetime string
+//       b   = boolean check box value (false = unchecked)
+//      uid  = uid of user who marked this as done
+//      name = name associated with uid
+//      id   = html element id for string update
+//      id2  = html area for name
+//      id3  = string to indicate late
 //  
 // @returns 
 //      updated value for ChkDt...  true if year >= 2000
 //  
 //-----------------------------------------------------------------------------
-window.taskFormDoneDate = function (dt,dtd,b,id,id2) {
+window.taskFormDoneDate = function (dt,dtd,b,uid,name,id,id2,id3) {
     var now = new Date();
     if (dt !== null && dt.length > 0) {
+        //--------------------------
+        // id: date
+        //--------------------------
         var y = dateFromString(dt);
         var s = '';
         b = y.getFullYear() >= 2000;
@@ -767,13 +775,23 @@ window.taskFormDoneDate = function (dt,dtd,b,id,id2) {
             s = taskDateRender(dt); 
         }
         setInnerHTML(id,s);
+        
+        //--------------------------
+        // id2: name indicator
+        //--------------------------
+        setInnerHTML(id2, (uid > 0) ? '('+name+')' : '');
+
+        //--------------------------
+        // id3: late indicator
+        //--------------------------
         dt = dateFromString(dtd);
+        s = '';
         if (now > dt) {
-            s = '<span style="color:#FC0D1B;">&nbsp;(late)</span>';
-        } else {
-            s = '';
+            if (dt.getFullYear() > 1970) {
+                s = '<span style="color:#FC0D1B;">&nbsp;LATE</span>';
+            }
         }
-        setInnerHTML(id2,s);
+        setInnerHTML(id3,s);
     }
     return b;
 };

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"rentroll/bizlogic"
 	"rentroll/rlib"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -34,6 +35,7 @@ type ARSendForm struct {
 	PriorToRAStop       bool    // is it ok to charge after RA stop
 	ApplyRcvAccts       bool    // if true, mark the receipt as fully paid based on RcvAccts
 	RAIDrqd             bool    // if true, it will require receipts to supply a RAID
+	IsRentAR            bool    // if true, then it represents Rent AR
 	DefaultAmount       float64 // default amount for this account rule
 	LastModTime         rlib.JSONDateTime
 	LastModBy           int64
@@ -66,6 +68,7 @@ type ARSaveForm struct {
 	RAIDrqd             bool
 	DefaultAmount       float64
 	AutoPopulateToNewRA bool
+	IsRentAR            bool
 }
 
 // PrARGrid is a structure specifically for the UI Grid.
@@ -255,7 +258,7 @@ func getARGrid(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		var q PrARGrid
 		q.Recid = i
 		q.BID = d.BID
-		q.BUD = getBUDFromBIDList(d.BID)
+		q.BUD = rlib.GetBUDFromBIDList(d.BID)
 
 		q, err = arGridRowScan(rows, q)
 		if err != nil {
@@ -384,6 +387,9 @@ func saveARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	if foo.Record.RAIDrqd && a.ARType == rlib.ARRECEIPT {
 		a.FLAGS |= 0x4
 	}
+	if foo.Record.IsRentAR {
+		a.FLAGS |= 0x8
+	}
 	rlib.Console("=============>>>>>>>>>> a.FLAGS = %x\n", a.FLAGS)
 
 	// Ensure that the supplied data is valid
@@ -487,7 +493,7 @@ func getARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		var gg ARSendForm
 
 		gg.BID = d.BID
-		gg.BUD = getBUDFromBIDList(d.BID)
+		gg.BUD = rlib.GetBUDFromBIDList(d.BID)
 
 		rlib.Console("gg.BUD = %s\n", gg.BUD)
 
@@ -503,15 +509,22 @@ func getARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		raReqMappedVal := raRequiredMap[gg.raRequired]
 		gg.PriorToRAStart = raReqMappedVal[0]
 		gg.PriorToRAStop = raReqMappedVal[1]
-		if gg.FLAGS&0x1 != 0 {
+
+		switch {
+		case gg.FLAGS&0x1 != 0:
 			gg.ApplyRcvAccts = true
-		}
-		if gg.FLAGS&0x4 != 0 {
-			gg.RAIDrqd = true
-		}
-		if gg.FLAGS&0x2 != 0 {
+			break
+		case gg.FLAGS&0x2 != 0:
 			gg.AutoPopulateToNewRA = true
+			break
+		case gg.FLAGS&0x4 != 0:
+			gg.RAIDrqd = true
+			break
+		case gg.FLAGS&0x8 != 0:
+			gg.IsRentAR = true
+			break
 		}
+
 		g.Record = gg
 		rlib.Console("g.Record.BUD = %s\n", g.Record.BUD)
 	}
@@ -558,4 +571,109 @@ func deleteARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	}
 
 	SvcWriteSuccessResponse(d.BID, w)
+}
+
+// ListedAR is struct to list down individual account rule record
+type ListedAR struct {
+	BID  int64  `json:"BID"`
+	ARID int64  `json:"ARID"` // Account Rule ID
+	Name string `json:"Name"` // Account rule name
+}
+
+// ARsListResponse is the response to list down all account rules
+type ARsListResponse struct {
+	Status  string     `json:"status"`
+	Total   int64      `json:"total"`
+	Records []ListedAR `json:"records"`
+}
+
+// ARsListRequestByFLAGS is the request struct for listing down account rules by FLAGS
+type ARsListRequestByFLAGS struct {
+	FLAGS int `json:"FLAGS"`
+}
+
+// ARsListRequestType represents for which type of request to list down ARs
+type ARsListRequestType struct {
+	Type string `json:"type"`
+}
+
+// SvcARsList generates a list of all ARs with respect of business id specified by d.BID
+// wsdoc {
+//  @Title Get list of ARs
+//  @URL /v1/arslist/:BUI
+//  @Method  GET
+//  @Synopsis Get ARs list
+//  @Description Get all Account rules list for the requested business
+//  @Input WebGridSearchRequest
+//  @Response ARsListResponse
+// wsdoc }
+func SvcARsList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
+	const funcname = "SvcARsList"
+	var (
+		g   ARsListResponse
+		foo ARsListRequestType
+	)
+	fmt.Printf("Entered %s\n", funcname)
+
+	if r.Method != "POST" {
+		err := fmt.Errorf("Only POST method is allowed")
+		SvcErrorReturn(w, err, funcname)
+		return
+	}
+
+	data := []byte(d.data)
+
+	// get the type first
+	err := json.Unmarshal(data, &foo)
+	if err != nil {
+		SvcErrorReturn(w, err, funcname)
+		return
+	}
+
+	switch foo.Type {
+	case "FLAGS":
+		bar := ARsListRequestByFLAGS{}
+		err = json.Unmarshal(data, &bar)
+		if err != nil {
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+
+		// get numeric value from bit presentation
+		FlagVal := uint64(1 << uint64(bar.FLAGS))
+
+		// check whether requested FLAG (bit representation) is valid or not
+		if !bizlogic.IsValidARFlag(FlagVal) {
+			err := fmt.Errorf("FLAGS value is invalid: %d", bar.FLAGS)
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+
+		// get account rules by FLAGS integer representation from binary value
+		m, err := rlib.GetARsByFLAGS(r.Context(), d.BID, FlagVal)
+		if err != nil {
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+
+		// append records in ascending order
+		var arList []ListedAR
+		for _, ar := range m {
+			arList = append(arList, ListedAR{BID: ar.BID, ARID: ar.ARID, Name: ar.Name})
+		}
+
+		// sort based on name, needs version 1.8 later of golang
+		sort.Slice(arList, func(i, j int) bool { return arList[i].Name < arList[j].Name })
+
+		g.Records = arList
+		g.Total = int64(len(g.Records))
+		g.Status = "success"
+		SvcWriteResponse(d.BID, &g, w)
+	default:
+		err := fmt.Errorf("%s: Unhandled %s command", funcname, foo.Type)
+		if err != nil {
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+	}
 }

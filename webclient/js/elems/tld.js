@@ -1,11 +1,11 @@
 "use strict";
 /*global
     w2ui, $, app, console,setToTLDForm, w2alert,
-    form_dirty_alert, addDateNavToToolbar, w2utils, w2popup,
+    form_dirty_alert, addDateNavToToolbar, w2utils, 
     openTaskDescForm, ensureSession, dtFormatISOToW2ui,
     dtFormatISOToW2ui, localtimeToUTC, setDefaultFormFieldAsPreviousRecord,
     getTLDInitRecord, getCurrentBID, getTDInitRecord, saveTaskListDefinition,
-    closeTaskDescForm,setTaskDescButtonsState,
+    closeTaskDescForm, setTaskDescButtonsState,
 */
 
 // Temporary storage for when a date is toggled off
@@ -13,6 +13,7 @@ var TaskDescData = {
     sEpochDue: '',
     sEpochPreDue: '',
 };
+
 var TLData = {
     sEpoch: '',
     sEpochDue: '',
@@ -23,6 +24,7 @@ var TLD = {
     FormWidth: 450,
     TaskDescWidth: 400,
     formBtnsDisabled: false,
+    TIME0: '1/1/1970',
 };
 
 window.getTLDInitRecord = function (BID, previousFormRecord){
@@ -49,6 +51,7 @@ window.getTLDInitRecord = function (BID, previousFormRecord){
         Epoch: dtFormatISOToW2ui(y1.toString()),
         EpochDue: dtFormatISOToW2ui(epochDue.toString()),
         EpochPreDue: dtFormatISOToW2ui(epochPreDue.toString()),
+        DurWait: 86400000000000,
         FLAGS: 0,
         Comment: '',
         CreateTS: y.toString(),
@@ -228,7 +231,9 @@ window.buildTaskListDefElements = function () {
             { field: 'EpochDue',       type: 'datetime', required: false },
             { field: 'EpochPreDue',    type: 'datetime', required: false },
             { field: 'FLAGS',          type: 'int',      required: false },
+            { field: 'EmailList',      type: 'text',     required: false },
             { field: 'Comment',        type: 'text',     required: false },
+            { field: 'DurWait',        type: 'int',      required: false },
             { field: 'CreateTS',       type: 'date',     required: false },
             { field: 'CreateBy',       type: 'int',      required: false },
             { field: 'LastModTime',    type: 'date',     required: false },
@@ -236,20 +241,19 @@ window.buildTaskListDefElements = function () {
         ],
         onLoad: function(event) {
             event.onComplete = function(event) {
-                var r = w2ui.tldsInfoForm.record;
+                var f = w2ui.tldsInfoForm;
+                var r = f.record;
                 if (typeof r.EpochPreDue === "undefined") {
                     return;
                 }
                 r.EpochPreDue = dtFormatISOToW2ui(r.EpochPreDue);
                 r.EpochDue    = dtFormatISOToW2ui(r.EpochDue);
                 r.Epoch       = dtFormatISOToW2ui(r.Epoch);
+                $(f.box).find("input[name=EpochDue]").prop( "disabled", !r.ChkEpochDue );
+                $(f.box).find("input[name=EpochPreDue]").prop( "disabled", !r.ChkEpochPreDue );
+                $(f.box).find("input[name=Epoch]").prop( "disabled", r.Cycle < 5);
             };
         },
-        // onRefresh: function(event) {
-        //     // var f = this;
-        //     event.onComplete = function(event) {
-        //     };
-        // },
         onChange: function(event) {
             event.onComplete = function() {
                 var f = this;
@@ -444,6 +448,12 @@ window.buildTaskListDefElements = function () {
                 //------------------------------------------------
                 r.EpochDue = localtimeToUTC(r.EpochDue);
                 r.EpochPreDue = localtimeToUTC(r.EpochPreDue);
+                if (r.EpochDue.length === 0) {
+                    r.EpochDue = TLD.TIME0;
+                }
+                if (r.EpochPreDue.length === 0) {
+                    r.EpochPreDue = TLD.TIME0;
+                }
 
                 var d = {cmd: "save", record: r};
                 var dat=JSON.stringify(d);
@@ -491,12 +501,15 @@ window.buildTaskListDefElements = function () {
         },
        onLoad: function(event) {
             event.onComplete = function(event) {
-                var r = w2ui.taskDescForm.record;
+                var f = w2ui.taskDescForm;
+                var r = f.record;
                 if (typeof r.EpochPreDue === "undefined") {
                     return;
                 }
                 r.EpochPreDue = dtFormatISOToW2ui(r.EpochPreDue);
                 r.EpochDue    = dtFormatISOToW2ui(r.EpochDue);
+                $(f.box).find("input[name=EpochPreDue]").prop( "disabled", !r.ChkEpochPreDue );
+                $(f.box).find("input[name=EpochDue]").prop( "disabled", !r.ChkEpochDue );
             };
         },
        onRender: function(event) {
@@ -622,6 +635,15 @@ window.saveTaskListDefinition = function (hide, reloadTldsInfo) {
     tmp.Epoch       = localtimeToUTC(tmp.Epoch);
     tmp.EpochDue    = localtimeToUTC(tmp.EpochDue);
     tmp.EpochPreDue = localtimeToUTC(tmp.EpochPreDue);
+    if (tmp.Epoch.length === 0) {
+        tmp.Epoch = TLD.TIME0;
+    }
+    if (tmp.EpochDue.length === 0) {
+        tmp.EpochDue = TLD.TIME0;
+    }
+    if (tmp.EpochPreDue.length === 0) {
+        tmp.EpochPreDue = TLD.TIME0;
+    }
     if (tmp.Name.length === 0) {
         w2alert('Please name the task list definition, then try again.');
         return 1;

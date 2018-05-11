@@ -28,13 +28,18 @@ type SvcTaskList struct {
 	DtDue        rlib.JSONDateTime
 	DtPreDue     rlib.JSONDateTime
 	DtPreDone    rlib.JSONDateTime
+	DtLastNotify rlib.JSONDateTime
+	DurWait      int64
 	ChkDtDone    bool
 	ChkDtDue     bool
 	ChkDtPreDue  bool
 	ChkDtPreDone bool
 	FLAGS        uint64
 	DoneUID      int64
+	DoneName     string
 	PreDoneUID   int64
+	PreDoneName  string
+	EmailList    string
 	Comment      string
 	CreateTS     rlib.JSONDateTime // when was this record created
 	CreateBy     int64             // employee UID (from phonebook) that created it
@@ -64,6 +69,8 @@ type SaveTaskList struct {
 	DtDue        rlib.JSONDateTime
 	DtPreDue     rlib.JSONDateTime
 	DtPreDone    rlib.JSONDateTime
+	DtLastNotify rlib.JSONDateTime
+	DurWait      int64
 	Pivot        rlib.JSONDateTime // Required for creating a new TaskList instance
 	ChkDtDone    bool
 	ChkDtDue     bool
@@ -72,6 +79,7 @@ type SaveTaskList struct {
 	FLAGS        int64
 	DoneUID      int64
 	PreDoneUID   int64
+	EmailList    string
 	Comment      string
 }
 
@@ -81,14 +89,6 @@ type SaveTaskListInput struct {
 	Status   string       `json:"status"`
 	FormName string       `json:"name"`
 	Record   SaveTaskList `json:"record"`
-}
-
-// TaskListInput is the input data format for a Save command
-type TaskListInput struct {
-	Recid    int64       `json:"recid"`
-	Status   string      `json:"status"`
-	FormName string      `json:"name"`
-	Record   SvcTaskList `json:"record"`
 }
 
 //-------------------------------------------------------------------
@@ -173,8 +173,8 @@ func SvcSearchHandlerTaskList(w http.ResponseWriter, r *http.Request, d *Service
 	var err error
 	rlib.Console("Entered %s\n", funcname)
 
-	whr := `TaskList.BID = %d AND TaskList.FLAGS & 1 = 0` // only get the Active TaskLists
-	whr = fmt.Sprintf(whr, d.BID)
+	whr := `TaskList.BID = %d AND TaskList.FLAGS & 1 = 0 AND %q <= DtDue AND DtDue < %q` // only get the Active TaskLists
+	whr = fmt.Sprintf(whr, d.BID, d.wsSearchReq.SearchDtStart, d.wsSearchReq.SearchDtStop)
 	order := `TaskList.Name ASC` // default ORDER
 
 	// get where clause and order clause for sql query
@@ -377,25 +377,28 @@ func saveTaskList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	}
 
 	//-------------------------------------------------------
+	// Chk values dictate the dates.
+	//-------------------------------------------------------
+	if foo.Record.ChkDtPreDone {
+		a.DtPreDone = now
+		a.PreDoneUID = d.sess.UID
+	} else {
+		a.DtPreDone = blank.DtPreDone
+		a.PreDoneUID = 0
+	}
+
+	if foo.Record.ChkDtDone {
+		a.DtDone = now
+		a.DoneUID = d.sess.UID
+	} else {
+		a.DtDone = blank.DtDone
+		a.DoneUID = 0
+	}
+
+	//-------------------------------------------------------
 	// Bizlogic checks done. Insert or update as needed...
 	//-------------------------------------------------------
 	if a.TLID == 0 && d.ID == 0 {
-		//-------------------------------------------------------
-		// Chk values dictate the dates.
-		//-------------------------------------------------------
-		if !foo.Record.ChkDtDue {
-			a.DtDue = blank.DtDue
-		}
-		if !foo.Record.ChkDtPreDue {
-			a.DtPreDue = blank.DtPreDue
-		}
-		if foo.Record.ChkDtPreDone {
-			a.DtPreDone = now
-		}
-		if foo.Record.ChkDtDone {
-			a.DtDone = now
-		}
-
 		if foo.Record.TLDID == 0 {
 			e := fmt.Errorf("%s: Could not create TaskList because definition id (TLDID = %d) does not exist", funcname, foo.Record.TLDID)
 			SvcErrorReturn(w, e, funcname)
@@ -431,29 +434,24 @@ func saveTaskList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		}
 		a.TLID = tlid // ensure that the return value is correct
 	} else {
-		b, err := rlib.GetTaskList(r.Context(), a.TLID)
-		if err != nil {
-			SvcErrorReturn(w, err, funcname)
-			return
-		}
-		//------------------------------------------------------------------
-		// Due and PreDue dates are not changable.  If those
-		// need to be changed, you'll need to change the definition.
-		// If the PreDue date changes from unset to set, record the
-		// datetime.  If it changes from set to unset, reset the datetime.
-		// Identical operations for Due date.
-		//------------------------------------------------------------------
-		if b.DtPreDone.Year() > 1999 && !foo.Record.ChkDtPreDone { // current db DtPreDone is set, but user unset it
-			a.DtPreDone = rlib.TIME0
-		}
-		if b.DtPreDone.Year() <= 1999 && foo.Record.ChkDtPreDone { // current db DtPreDone is unset, but user set it
+		if foo.Record.ChkDtPreDone {
 			a.DtPreDone = now
+			a.PreDoneUID = d.sess.UID
+			a.FLAGS |= 1 << 3
+		} else {
+			a.DtPreDone = rlib.TIME0
+			a.PreDoneUID = 0
+			a.FLAGS &= ^(1 << 3)
 		}
-		if b.DtDone.Year() > 1999 && !foo.Record.ChkDtDone { // current db DtDone is set, but user unset it
-			a.DtDone = rlib.TIME0
-		}
-		if b.DtDone.Year() <= 1999 && foo.Record.ChkDtDone { // current db DtPreDone is unset, but user set it
+
+		if foo.Record.ChkDtDone {
 			a.DtDone = now
+			a.DoneUID = d.sess.UID
+			a.FLAGS |= 1 << 4
+		} else {
+			a.DtDone = rlib.TIME0
+			a.DoneUID = 0
+			a.FLAGS &= ^(1 << 4)
 		}
 		err = rlib.UpdateTaskList(r.Context(), &a)
 	}
@@ -495,7 +493,7 @@ func getTaskList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	if a.TLID > 0 {
 		var gg SvcTaskList
 		rlib.MigrateStructVals(&a, &gg)
-		gg.BUD = getBUDFromBIDList(gg.BID)
+		gg.BUD = rlib.GetBUDFromBIDList(gg.BID)
 		if a.DtDone.Year() > 1999 {
 			gg.ChkDtDone = true
 		}
@@ -507,6 +505,12 @@ func getTaskList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		}
 		if a.DtPreDue.Year() > 1999 {
 			gg.ChkDtPreDue = true
+		}
+		if a.DoneUID > 0 {
+			gg.DoneName = rlib.GetNameForUID(r.Context(), a.DoneUID)
+		}
+		if a.PreDoneUID > 0 {
+			gg.PreDoneName = rlib.GetNameForUID(r.Context(), a.PreDoneUID)
 		}
 		g.Record = gg
 	}

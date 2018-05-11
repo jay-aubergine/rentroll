@@ -101,6 +101,8 @@ func buildPreparedStatements() {
 	Errcheck(err)
 	RRdb.Prepstmt.GetARsByType, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM AR WHERE BID=? AND ARType=?")
 	Errcheck(err)
+	RRdb.Prepstmt.GetARsByFLAGS, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM AR WHERE BID=? AND FLAGS=?")
+	Errcheck(err)
 	RRdb.Prepstmt.GetAllARs, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM AR WHERE BID=?")
 	Errcheck(err)
 
@@ -1176,11 +1178,39 @@ func buildPreparedStatements() {
 	//==========================================
 	// TASKLIST
 	//==========================================
-	//      1    2   3    4     5     6        7      8          9    10      11         12      13       14       15          16
-	flds = "TLID,BID,Name,Cycle,DtDue,DtPreDue,DtDone,DtPreDone,FLAGS,DoneUID,PreDoneUID,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
+	//      1    2   3    4     5     6        7      8          9    10      11         12        13           14             15       16       17,         18
+	flds = "TLID,BID,Name,Cycle,DtDue,DtPreDue,DtDone,DtPreDone,FLAGS,DoneUID,PreDoneUID,EmailList,DtLastNotify,DurWait,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskList"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
 	RRdb.Prepstmt.GetTaskList, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList WHERE TLID=?")
+	Errcheck(err)
+
+	where := `WHERE
+    -- the TaskList is enabled
+    (FLAGS & 1 = 0)
+    AND 
+	(
+		(
+			-- no notifications have been made
+			(FLAGS & 32 = 0) AND 
+			(
+				-- PreDone check needed   PreDone is set but it's late                  PreDone not set and it's late
+				((FLAGS & 2) > 0  AND  (((FLAGS & 8 > 0) AND DtPreDone > DtPreDue) OR ((FLAGS & 8 = 0) AND ? > DtPreDue)))
+				OR
+				--    must check Done          Done is set but it's late                Done is not set AND it's late
+				((FLAGS & 4) > 0  AND  (((FLAGS & 16 > 0) AND DtDone > DtDue) OR ((FLAGS & 16 = 0) AND ? > DtDue)))
+			)
+		)
+		OR
+		(
+			-- notification has been made
+			(FLAGS & 32 > 0) 
+			AND
+			-- wait period after last notify has passed
+			DATE_ADD(DtLastNotify, interval DurWait/1000 microsecond) < ?  
+		)
+	);`
+	RRdb.Prepstmt.GetDueTaskLists, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList " + where)
 	Errcheck(err)
 	RRdb.Prepstmt.InsertTaskList, err = RRdb.Dbrr.Prepare("INSERT INTO TaskList (" + s1 + ") VALUES(" + s2 + ")")
 	Errcheck(err)
@@ -1211,7 +1241,7 @@ func buildPreparedStatements() {
 	//==========================================
 	// TASK LIST DEFINITION
 	//==========================================
-	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,EmailList,DurWait,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskListDefinition"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
 	RRdb.Prepstmt.GetAllTaskListDefinitions, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskListDefinition WHERE BID=? AND FLAGS & 1 = 0")

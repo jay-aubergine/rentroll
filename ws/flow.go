@@ -187,7 +187,7 @@ func getAllFlowsByUser(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 			Recid:  int64(i),
 			BID:    d.BID,
 			FlowID: rec,
-			BUD:    string(getBUDFromBIDList(d.BID)),
+			BUD:    string(rlib.GetBUDFromBIDList(d.BID)),
 		}
 		g.Records = append(g.Records, t)
 	}
@@ -358,7 +358,7 @@ func saveFlowPart(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	var jsBtData []byte
 	switch fpJSONData.Flow {
 	case rlib.RAFlow:
-		jsBtData, err = getUpdateRAFlowPartJSONData(fpJSONData.Data, fpJSONData.PartType)
+		jsBtData, err = getUpdateRAFlowPartJSONData(d.BID, fpJSONData.Data, fpJSONData.PartType)
 		if err != nil {
 			err1 := fmt.Errorf("Data is not in valid format for flow: %s, partType: %d, Error: %s", fpJSONData.Flow, fpJSONData.PartType, err.Error())
 			SvcErrorReturn(w, err1, funcname)
