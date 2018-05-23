@@ -321,11 +321,19 @@ MYSQLDUMP="mysqldump --no-defaults"
 # May 9, 2018
 # ALTER TABLE TaskList CHANGE DurWait DurWait BIGINT NOT NULL DEFAULT 86400000000000;
 
+# May 11, 2018
+# ALTER TABLE TaskList ADD TLDID BIGINT NOT NULL DEFAULT 0 AFTER BID;
+
+# May 14, 2018
+# ALTER TABLE TaskList ADD PTLID BIGINT NOT NULL DEFAULT 0 AFTER BID;
+
+# May 16, 2018
+# ALTER TABLE RentableTypes ADD ARID BIGINT NOT NULL DEFAULT 0 AFTER FLAGS;
+
 #=====================================================
 #  Put modifications to schema in the lines below
 #=====================================================
 cat >${MODFILE} <<EOF
-ALTER TABLE TaskListDefinition ADD DurWait BIGINT NOT NULL DEFAULT 86400000000000 AFTER EmailList;
 EOF
 
 #=====================================================
@@ -341,6 +349,9 @@ declare -a dbs=(
 	setup/accord.sql
 	tws/rr.sql
 	tws/tws.sql
+	tws2/rrtl.sql
+	tws2/moonshine.sql
+	tws3/rr.sql
 	webclient/accord.sql
 	webclient/webclientTest.sql
 	websvc1/asmtest.sql

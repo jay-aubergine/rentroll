@@ -201,8 +201,9 @@ func CreateAssessmentsFromCSV(ctx context.Context, sa []string, lineno int) (int
 		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentCycle, -1, errMsg)
 	}
 	if !rlib.IsValidAccrual(a.RentCycle) {
-		errMsg := fmt.Sprintf("Accrual must be between %d and %d.  Found %d", rlib.CYCLESECONDLY, rlib.CYCLEYEARLY, a.RentCycle)
+		errMsg := fmt.Sprintf("Accrual must be between %d and %d.  Found %d", rlib.RECURSECONDLY, rlib.RECURYEARLY, a.RentCycle)
 		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, RentCycle, -1, errMsg)
+
 	}
 
 	//-------------------------------------------------------------------
@@ -214,7 +215,7 @@ func CreateAssessmentsFromCSV(ctx context.Context, sa []string, lineno int) (int
 		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ProrationCycle, -1, errMsg)
 	}
 	if !rlib.IsValidAccrual(a.ProrationCycle) {
-		errMsg := fmt.Sprintf("Proration must be between %d and %d.  Found %d", rlib.CYCLESECONDLY, rlib.CYCLEYEARLY, a.ProrationCycle)
+		errMsg := fmt.Sprintf("Proration must be between %d and %d.  Found %d", rlib.RECURSECONDLY, rlib.RECURYEARLY, a.ProrationCycle)
 		return CsvErrorSensitivity, formatCSVErrors(funcname, lineno, ProrationCycle, -1, errMsg)
 	}
 

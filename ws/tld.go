@@ -97,6 +97,7 @@ type SaveTaskListDef struct {
 	EmailList      string
 	FLAGS          int64
 	Comment        string
+	TZOffset       int // client offset in minutes
 }
 
 // SaveTaskListDefinitionInput is the input data format for a Save command

@@ -35,7 +35,9 @@ type ARSendForm struct {
 	PriorToRAStop       bool    // is it ok to charge after RA stop
 	ApplyRcvAccts       bool    // if true, mark the receipt as fully paid based on RcvAccts
 	RAIDrqd             bool    // if true, it will require receipts to supply a RAID
-	IsRentAR            bool    // if true, then it represents Rent AR
+	IsRentASM           bool    // if true, then it represents Rent Assessment
+	IsSecDepASM         bool    // if true, then it represents Security Deposit Assessment
+	IsNonRecurCharge    bool    // if true, then it represents Non recur charge
 	DefaultAmount       float64 // default amount for this account rule
 	LastModTime         rlib.JSONDateTime
 	LastModBy           int64
@@ -68,7 +70,9 @@ type ARSaveForm struct {
 	RAIDrqd             bool
 	DefaultAmount       float64
 	AutoPopulateToNewRA bool
-	IsRentAR            bool
+	IsRentASM           bool
+	IsSecDepASM         bool
+	IsNonRecurCharge    bool
 }
 
 // PrARGrid is a structure specifically for the UI Grid.
@@ -387,8 +391,14 @@ func saveARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	if foo.Record.RAIDrqd && a.ARType == rlib.ARRECEIPT {
 		a.FLAGS |= 0x4
 	}
-	if foo.Record.IsRentAR { // IsRentAR - 1<<4
+	if foo.Record.IsRentASM { // IsRentASM - 1<<4
 		a.FLAGS |= 0x10
+	}
+	if foo.Record.IsSecDepASM { // IsSecDepASM - 1<<5
+		a.FLAGS |= 0x20
+	}
+	if foo.Record.IsNonRecurCharge { // IsNonRecurCharge - 1<<6
+		a.FLAGS |= 0x40
 	}
 	rlib.Console("=============>>>>>>>>>> a.FLAGS = %x\n", a.FLAGS)
 
@@ -520,7 +530,13 @@ func getARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 			gg.RAIDrqd = true
 		}
 		if gg.FLAGS&0x10 != 0 {
-			gg.IsRentAR = true
+			gg.IsRentASM = true
+		}
+		if gg.FLAGS&0x20 != 0 {
+			gg.IsSecDepASM = true
+		}
+		if gg.FLAGS&0x40 != 0 {
+			gg.IsNonRecurCharge = true
 		}
 
 		g.Record = gg
@@ -573,9 +589,11 @@ func deleteARForm(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 
 // ListedAR is struct to list down individual account rule record
 type ListedAR struct {
-	BID  int64  `json:"BID"`
-	ARID int64  `json:"ARID"` // Account Rule ID
-	Name string `json:"Name"` // Account rule name
+	BID           int64
+	ARID          int64  // Account Rule ID
+	Name          string // Account rule name
+	DefaultAmount float64
+	FLAGS         uint64
 }
 
 // ARsListResponse is the response to list down all account rules
@@ -587,7 +605,8 @@ type ARsListResponse struct {
 
 // ARsListRequestByFLAGS is the request struct for listing down account rules by FLAGS
 type ARsListRequestByFLAGS struct {
-	FLAGS uint64 `json:"FLAGS"`
+	FLAGS uint64
+	RID   int64
 }
 
 // ARsListRequestType represents for which type of request to list down ARs
@@ -629,6 +648,33 @@ func SvcARsList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	}
 
 	switch foo.Type {
+	case "ALL":
+		m, err := rlib.GetAllARs(r.Context(), d.BID)
+		if err != nil {
+			SvcErrorReturn(w, err, funcname)
+			return
+		}
+
+		// append records in ascending order
+		var arList []ListedAR
+		for _, ar := range m {
+			arList = append(arList, ListedAR{
+				BID:           ar.BID,
+				ARID:          ar.ARID,
+				Name:          ar.Name,
+				FLAGS:         ar.FLAGS,
+				DefaultAmount: ar.DefaultAmount,
+			})
+		}
+
+		// sort based on name, needs version 1.8 later of golang
+		sort.Slice(arList, func(i, j int) bool { return arList[i].Name < arList[j].Name })
+
+		g.Records = arList
+		g.Total = int64(len(g.Records))
+		g.Status = "success"
+		SvcWriteResponse(d.BID, &g, w)
+		return
 	case "FLAGS":
 		bar := ARsListRequestByFLAGS{}
 		err = json.Unmarshal(data, &bar)
@@ -656,7 +702,13 @@ func SvcARsList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		// append records in ascending order
 		var arList []ListedAR
 		for _, ar := range m {
-			arList = append(arList, ListedAR{BID: ar.BID, ARID: ar.ARID, Name: ar.Name})
+			arList = append(arList, ListedAR{
+				BID:           ar.BID,
+				ARID:          ar.ARID,
+				Name:          ar.Name,
+				FLAGS:         ar.FLAGS,
+				DefaultAmount: ar.DefaultAmount,
+			})
 		}
 
 		// sort based on name, needs version 1.8 later of golang
@@ -666,6 +718,7 @@ func SvcARsList(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 		g.Total = int64(len(g.Records))
 		g.Status = "success"
 		SvcWriteResponse(d.BID, &g, w)
+		return
 	default:
 		err := fmt.Errorf("%s: Unhandled %s command", funcname, foo.Type)
 		if err != nil {

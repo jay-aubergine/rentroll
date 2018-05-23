@@ -445,7 +445,7 @@ func ReadReceiptAllocations(rows *sql.Rows, a *ReceiptAllocation) error {
 
 // ReadRentableTypeDown reads a full RentableTypeDown structure of data from the database based on the supplied Row pointer.
 func ReadRentableTypeDown(rows *sql.Rows, a *RentableTypeDown) error {
-	return rows.Scan(&a.Recid, &a.RentableName)
+	return rows.Scan(&a.RID, &a.RentableName)
 }
 
 // ReadRentable reads a full Rentable structure of data from the database based on the supplied Row pointer.
@@ -462,14 +462,14 @@ func ReadRentables(rows *sql.Rows, a *Rentable) error {
 
 // ReadRentableType reads a full RentableType structure of data from the database based on the supplied Row pointer.
 func ReadRentableType(row *sql.Row, a *RentableType) error {
-	err := row.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ManageToBudget, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ManageToBudget, &a.ARID, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadRentableTypes reads a full RentableType structure of data from the database based on the supplied Rows pointer.
 func ReadRentableTypes(rows *sql.Rows, a *RentableType) error {
-	return rows.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ManageToBudget, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ManageToBudget, &a.ARID, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadRentableTypeRef reads a full RentableTypeRef structure of data from the database based on the supplied Row pointer.
@@ -646,16 +646,16 @@ func ReadTasks(rows *sql.Rows, a *Task) error {
 }
 
 // ReadTaskList reads a full TaskList structure from the database based on the supplied row object
-//            flds = "TLID,     BID,    Name,    Cycle,    DtDue,    DtPreDue,    DtDone,    DtPreDone,    FLAGS,    DoneUID,    PreDoneUID,    Comment,    CreateTS,    CreateBy,    LastModTime,    LastModBy"
+//            flds = "TLID,     BID, TLDID,    Name,    Cycle,    DtDue,    DtPreDue,    DtDone,    DtPreDone,    FLAGS,    DoneUID,    PreDoneUID,    Comment,    CreateTS,    CreateBy,    LastModTime,    LastModBy"
 func ReadTaskList(row *sql.Row, a *TaskList) error {
-	err := row.Scan(&a.TLID, &a.BID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.EmailList, &a.DtLastNotify, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.TLID, &a.BID, &a.PTLID, &a.TLDID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.EmailList, &a.DtLastNotify, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadTaskLists reads a full TaskList structure from the database based on the supplied rows
 func ReadTaskLists(rows *sql.Rows, a *TaskList) error {
-	return rows.Scan(&a.TLID, &a.BID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.EmailList, &a.DtLastNotify, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.TLID, &a.BID, &a.PTLID, &a.TLDID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.EmailList, &a.DtLastNotify, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadTaskDescriptor reads a full TaskDescriptor structure from the database based on the supplied row object

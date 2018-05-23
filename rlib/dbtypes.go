@@ -15,6 +15,17 @@ const (
 	NO  = int64(0) // std negative value
 	YES = int64(1)
 
+	RECURNONE      = 0
+	RECURSECONDLY  = 1
+	RECURMINUTELY  = 2
+	RECURHOURLY    = 3
+	RECURDAILY     = 4
+	RECURWEEKLY    = 5
+	RECURMONTHLY   = 6
+	RECURQUARTERLY = 7
+	RECURYEARLY    = 8
+	RECURLAST      = RECURYEARLY
+
 	ELEMPERSON          = 1 // people
 	ELEMCOMPANY         = 2 // companies
 	ELEMCLASS           = 3 // classes
@@ -70,16 +81,6 @@ const (
 	ACCTSTATUSACTIVE   = 2
 	RAASSOCIATED       = 1
 	RAUNASSOCIATED     = 2
-
-	CYCLENORECUR   = 0
-	CYCLESECONDLY  = 1
-	CYCLEMINUTELY  = 2
-	CYCLEHOURLY    = 3
-	CYCLEDAILY     = 4
-	CYCLEWEEKLY    = 5
-	CYCLEMONTHLY   = 6
-	CYCLEQUARTERLY = 7
-	CYCLEYEARLY    = 8
 
 	YEARFOREVER = 9000 // an arbitrary year, anything >= to this year is taken to mean "unbounded", or no end date.
 
@@ -151,6 +152,7 @@ const (
 	RRDATEFMT4        = "01/02/2006"
 	RRDATEINPFMT      = "2006-01-02"
 	RRDATEFMTSQL      = RRDATEINPFMT
+	RRDATETIMESQL     = "2006-01-02 15:04:05"
 	RRJSUTCDATETIME   = "Mon, 02 Jan 2006 15:04:05 MST"
 	RRDATETIMEINPFMT  = "2006-01-02 15:04:00 MST"
 	RRDATETIMEFMT     = "2006-01-02T15:04:00Z"
@@ -210,6 +212,8 @@ type Task struct {
 type TaskList struct {
 	TLID      int64
 	BID       int64
+	PTLID     int64 // parent TLDID or 0 if this is the parent of a list
+	TLDID     int64 // what type of task list... the definition
 	Name      string
 	Cycle     int64
 	DtDue     time.Time
@@ -758,6 +762,7 @@ type TransactantTypeDown struct {
 // RentableTypeDown is the struct needed to match names in typedown controls
 type RentableTypeDown struct {
 	Recid        int64 `json:"recid"` // this will hold the RID
+	RID          int64
 	RentableName string
 }
 
@@ -1137,6 +1142,7 @@ type RentableType struct {
 	GSRPC          int64                      // Time increments in which GSR is calculated to account for rate changes
 	ManageToBudget int64                      // 0=no, 1 = yes
 	FLAGS          uint64                     // 0=active, 1=inactive
+	ARID           int64                      // ARID reference, for default rent amount for this types
 	MR             []RentableMarketRate       // array of time sensitive market rates
 	CA             map[string]CustomAttribute // index by Name of attribute, associated custom attributes
 	MRCurrent      float64                    // the current market rate (historical values are in MR)
@@ -1797,6 +1803,9 @@ type RRprepSQL struct {
 	DeleteTaskListTasks                     *sql.Stmt
 	GetTaskListDefinitionByName             *sql.Stmt
 	GetDueTaskLists                         *sql.Stmt
+	CheckForTLDInstances                    *sql.Stmt
+	GetAllParentTaskLists                   *sql.Stmt
+	GetTaskListInstanceInRange              *sql.Stmt
 }
 
 // AllTables is an array of strings containing the names of every table in the RentRoll database

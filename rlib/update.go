@@ -837,7 +837,7 @@ func UpdateRentableType(ctx context.Context, a *RentableType) error {
 		a.LastModBy = sess.UID
 	}
 
-	fields := []interface{}{a.BID, a.Style, a.Name, a.RentCycle, a.Proration, a.GSRPC, a.ManageToBudget, a.LastModBy, a.RTID}
+	fields := []interface{}{a.BID, a.Style, a.Name, a.RentCycle, a.Proration, a.GSRPC, a.ManageToBudget, a.ARID, a.LastModBy, a.RTID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateRentableType)
 		defer stmt.Close()
@@ -1066,7 +1066,7 @@ func UpdateTaskList(ctx context.Context, a *TaskList) error {
 	if authProblem(ctx, &a.LastModBy) {
 		return ErrSessionRequired
 	}
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.DtDue, a.DtPreDue, a.DtDone, a.DtPreDone, a.FLAGS, a.DoneUID, a.PreDoneUID, a.EmailList, a.DtLastNotify, a.DurWait, a.Comment, a.LastModBy, a.TLID}
+	fields := []interface{}{a.BID, a.PTLID, a.TLDID, a.Name, a.Cycle, a.DtDue, a.DtPreDue, a.DtDone, a.DtPreDone, a.FLAGS, a.DoneUID, a.PreDoneUID, a.EmailList, a.DtLastNotify, a.DurWait, a.Comment, a.LastModBy, a.TLID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateTransactant)
 		defer stmt.Close()

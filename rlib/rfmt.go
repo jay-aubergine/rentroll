@@ -13,20 +13,6 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-// RECURNONE - RECURLAST are the allowed recurrence types
-const (
-	RECURNONE      = 0
-	RECURSECONDLY  = 1
-	RECURMINUTELY  = 2
-	RECURHOURLY    = 3
-	RECURDAILY     = 4
-	RECURWEEKLY    = 5
-	RECURMONTHLY   = 6
-	RECURQUARTERLY = 7
-	RECURYEARLY    = 8
-	RECURLAST      = RECURYEARLY
-)
-
 // RRCommaf returns a floating point number formated with commas for every 3 orders of magnitude
 // and 2 points after the decimal
 func RRCommaf(x float64) string {
@@ -212,9 +198,12 @@ func IncMonths(m time.Month, n int64) (time.Month, int64) {
 // GetMonthPeriodForDate is used to get the containing month start and end dates for the
 // supplied date.  That is, if a = Jul 13, 2017, the return values will be 2017-JUL-01 and
 // 2017-AUG-01.
+//
 // INPUTS  -  a = any datetime
+//
 // RETURNS    d1 = first day 00:00:00 of the month of a
 //            d2 = first day 00:00:00 of the month after a
+//----------------------------------------------------------------------------------
 func GetMonthPeriodForDate(a *time.Time) (time.Time, time.Time) {
 	d1 := time.Date(a.Year(), a.Month(), 1, 0, 0, 0, 0, RRdb.Zone)
 	mon, inc := IncMonths(a.Month(), int64(1))

@@ -5,7 +5,8 @@
     openTaskDescForm, ensureSession, dtFormatISOToW2ui,
     dtFormatISOToW2ui, localtimeToUTC, setDefaultFormFieldAsPreviousRecord,
     getTLDInitRecord, getCurrentBID, getTDInitRecord, saveTaskListDefinition,
-    closeTaskDescForm, setTaskDescButtonsState,
+    closeTaskDescForm, setTaskDescButtonsState, newDateKeepOldTime,
+    w2uiDateTimeControlString,
 */
 
 // Temporary storage for when a date is toggled off
@@ -236,6 +237,7 @@ window.buildTaskListDefElements = function () {
             { field: 'DurWait',        type: 'int',      required: false },
             { field: 'CreateTS',       type: 'date',     required: false },
             { field: 'CreateBy',       type: 'int',      required: false },
+            { field: 'TZOffset',       type: 'int',      required: false },
             { field: 'LastModTime',    type: 'date',     required: false },
             { field: 'LastModBy',      type: 'int',      required: false },
         ],
@@ -246,12 +248,16 @@ window.buildTaskListDefElements = function () {
                 if (typeof r.EpochPreDue === "undefined") {
                     return;
                 }
+                
+                // translate dates into a format that w2ui understands
                 r.EpochPreDue = dtFormatISOToW2ui(r.EpochPreDue);
                 r.EpochDue    = dtFormatISOToW2ui(r.EpochDue);
                 r.Epoch       = dtFormatISOToW2ui(r.Epoch);
+
+                // now enable/disable as needed
                 $(f.box).find("input[name=EpochDue]").prop( "disabled", !r.ChkEpochDue );
                 $(f.box).find("input[name=EpochPreDue]").prop( "disabled", !r.ChkEpochPreDue );
-                $(f.box).find("input[name=Epoch]").prop( "disabled", r.Cycle < 5);
+                $(f.box).find("input[name=Epoch]").prop( "disabled", r.Cycle < 4);  // enable if recur is Daily, Weekly, Monthlhy, quarterly or yearly
             };
         },
         onChange: function(event) {
@@ -285,16 +291,41 @@ window.buildTaskListDefElements = function () {
                     f.refresh();
                     break;
                 case "Cycle":
-                    b = r.Cycle.id < 5; // 5 is weekly
+                    b = r.Cycle.id < 4; // 4 is daily
                     $(f.box).find("input[name=Epoch]").prop( "disabled", b);
-                    if (b && event.value_previous.id >= 5) {  // change from need date to don't need date
+                    if (b && event.value_previous.id >= 4) {  // change from need date to don't need date
                         TLData.sEpoch = r.Epoch;
                         r.Epoch = '';
-                    } else if (!b && event.value_previous.id < 5 ) { // change from don't need date to need date
+                    } else if (!b && event.value_previous.id < 4 ) { // change from don't need date to need date
                         if (r.Epoch === "" && TLData.sEpoch.length > 1) {
                             r.Epoch = TLData.sEpoch;
                         }
                     }
+                    f.refresh();
+                    break;
+                case "Epoch":
+                case "EpochDue":
+                case "EpochPreDue":
+                    // all dates must be in sync if cycle > 0 and < 4
+                    if (0 < r.Cycle.id && r.Cycle.id <= 4) {
+                        if (event.value_new === "") {
+                            r[event.target] = event.value_previous;
+                            event.isCancelled = true;
+                            f.refresh();
+                            return;
+                        }
+                        var dt = new Date(r[event.target]);
+                        var da = dt.getDate();
+                        var mn = dt.getMonth();
+                        var yr = dt.getFullYear();
+                        r.Epoch       = w2uiDateTimeControlString(newDateKeepOldTime(r.Epoch,yr,mn,da));
+                        r.EpochDue    = w2uiDateTimeControlString(newDateKeepOldTime(r.EpochDue,yr,mn,da));
+                        r.EpochPreDue = w2uiDateTimeControlString(newDateKeepOldTime(r.EpochPreDue,yr,mn,da));
+                    }
+                    // we must always keep epoch at localtime 00:00
+                    var ddt = new Date(r.Epoch);
+                    var dd1 = new Date(ddt.getFullYear(), ddt.getMonth(), ddt.getDate(), 0, 0 );
+                    r.Epoch = w2uiDateTimeControlString(dd1);
                     f.refresh();
                     break;
                 }
@@ -418,9 +449,10 @@ window.buildTaskListDefElements = function () {
             { field: 'PreDoneUID',     type: 'int',         required: false },
             { field: 'TDComment',      type: 'text',        required: false },
             { field: 'LastModTime',    type: 'date',        required: false },
-            { field: 'LastModBy',      type: 'date',        required: false },
+            { field: 'LastModBy',      type: 'int',         required: false },
             { field: 'CreateTS',       type: 'date',        required: false },
-            { field: 'CreateBy',       type: 'date',        required: false },
+            { field: 'CreateBy',       type: 'int',         required: false },
+            { field: 'TZOffset',       type: 'int',         required: false },
         ],
         actions: {
             save: function(target, data){
@@ -454,6 +486,7 @@ window.buildTaskListDefElements = function () {
                 if (r.EpochPreDue.length === 0) {
                     r.EpochPreDue = TLD.TIME0;
                 }
+                r.TZOffset = app.TZOffset;
 
                 var d = {cmd: "save", record: r};
                 var dat=JSON.stringify(d);

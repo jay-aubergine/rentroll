@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.22, for osx10.12 (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.22, for Linux (x86_64)
 --
 -- Host: localhost    Database: rentroll
 -- ------------------------------------------------------
--- Server version	5.7.22
+-- Server version	5.7.22-0ubuntu0.16.04.1-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -1752,6 +1752,7 @@ CREATE TABLE `RentableTypes` (
   `GSRPC` bigint(20) NOT NULL DEFAULT '0',
   `ManageToBudget` smallint(6) NOT NULL DEFAULT '0',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `ARID` bigint(20) NOT NULL DEFAULT '0',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1766,7 +1767,7 @@ CREATE TABLE `RentableTypes` (
 
 LOCK TABLES `RentableTypes` WRITE;
 /*!40000 ALTER TABLE `RentableTypes` DISABLE KEYS */;
-INSERT INTO `RentableTypes` VALUES (1,1,'U1','Unit Type 1',6,4,4,1,0,'2017-08-31 17:51:54',0,'2017-08-31 17:51:54',0),(2,1,'U2','Unit Type 2',6,4,4,1,0,'2017-08-31 17:52:21',0,'2017-08-31 17:52:21',0);
+INSERT INTO `RentableTypes` VALUES (1,1,'U1','Unit Type 1',6,4,4,1,0,0,'2017-08-31 17:51:54',0,'2017-08-31 17:51:54',0),(2,1,'U2','Unit Type 2',6,4,4,1,0,0,'2017-08-31 17:52:21',0,'2017-08-31 17:52:21',0);
 /*!40000 ALTER TABLE `RentableTypes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2220,6 +2221,8 @@ DROP TABLE IF EXISTS `TaskList`;
 CREATE TABLE `TaskList` (
   `TLID` bigint(20) NOT NULL AUTO_INCREMENT,
   `BID` bigint(20) NOT NULL DEFAULT '0',
+  `PTLID` bigint(20) NOT NULL DEFAULT '0',
+  `TLDID` bigint(20) NOT NULL DEFAULT '0',
   `Name` varchar(256) NOT NULL DEFAULT '',
   `Cycle` bigint(20) NOT NULL DEFAULT '0',
   `DtDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
@@ -2481,4 +2484,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-05-09 17:41:39
+-- Dump completed on 2018-05-16 14:43:57

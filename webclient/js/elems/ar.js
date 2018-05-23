@@ -27,7 +27,9 @@ window.getARRulesInitRecord = function (BID, BUD, post_accounts_pre_selected, pr
         ApplyRcvAccts: false,
         RAIDrqd: false,
         AutoPopulateToNewRA: false,
-        IsRentAR: false,
+        IsRentASM: false,
+        IsSecDepASM: false,
+        IsNonRecurCharge: false,
         DefaultAmount: 0.0,
     };
 
@@ -236,11 +238,13 @@ $().w2grid({
             { field: 'RAIDrqd',              type: 'checkbox', required: false, html: { page: 0, column: 0 } },
             { field: 'DefaultAmount',        type: 'money',    required: true,  html: { page: 0, column: 0 } },
             { field: 'AutoPopulateToNewRA',  type: 'checkbox', required: false, html: { page: 0, column: 0 } },
-            { field: 'IsRentAR',             type: 'checkbox', required: false, html: { page: 0, column: 0 } },
+            { field: 'IsRentASM',            type: 'checkbox', required: false, html: { page: 0, column: 0 } },
+            { field: 'IsSecDepASM',          type: 'checkbox', required: false, html: { page: 0, column: 0 } },
+            { field: 'IsNonRecurCharge',     type: 'checkbox', required: false, html: { page: 0, column: 0 } },
             { field: "LastModTime",          type: 'time',     required: false, html: { caption: "LastModTime", page: 0, column: 0 } },
             { field: "LastModBy",            type: 'int',      required: false, html: { caption: "LastModBy", page: 0, column: 0 } },
             { field: "CreateTS",             type: 'time',     required: false, html: { caption: "CreateTS", page: 0, column: 0 } },
-            { field: "CreateBy",             type: 'int',      required: false, html: { caption: "CreateBy", page: 0, column: 0 } },
+            { field: "CreateBy",             type: 'int',      required: false, html: { caption: "CreateBy", page: 0, column: 0 } }
         ],
         toolbar: {
             items: [
@@ -379,7 +383,9 @@ $().w2grid({
             data.postData.record.ApplyRcvAccts = int_to_bool(data.postData.record.ApplyRcvAccts);
             data.postData.record.RAIDrqd = int_to_bool(data.postData.record.RAIDrqd);
             data.postData.record.AutoPopulateToNewRA = int_to_bool(data.postData.record.AutoPopulateToNewRA);
-            data.postData.record.IsRentAR = int_to_bool(data.postData.record.IsRentAR);
+            data.postData.record.IsRentASM = int_to_bool(data.postData.record.IsRentASM);
+            data.postData.record.IsSecDepASM = int_to_bool(data.postData.record.IsSecDepASM);
+            data.postData.record.IsNonRecurCharge = int_to_bool(data.postData.record.IsNonRecurCharge);
         },
         onRefresh: function(event) {
             event.onComplete = function() {
@@ -392,6 +398,22 @@ $().w2grid({
         },
         onChange: function(event) {
             event.onComplete = function() {
+                var f = this;
+                switch (event.target) {
+                    case "IsRentASM":
+                        if (event.value_new) {
+                            f.record.IsSecDepASM = false;
+                            f.refresh();
+                        }
+                        break;
+                    case "IsSecDepASM":
+                        if (event.value_new) {
+                            f.record.IsRentASM = false;
+                            f.refresh();
+                        }
+                        break;
+                }
+
                 // formRecDiffer: 1=current record, 2=original record, 3=diff object
                 var diff = formRecDiffer(this.record, app.active_form_original, {});
                 // if diff == {} then make dirty flag as false, else true
@@ -400,7 +422,7 @@ $().w2grid({
                 } else {
                     app.form_is_dirty = true;
                 }
-                var f = this;
+
                 var b = ("Receipt" === f.record.ARType.text && f.record.ApplyRcvAccts);
                 $(f.box).find("input[name=RAIDrqd]").prop( "disabled", !b);
             };

@@ -199,7 +199,7 @@ func GetARMap(ctx context.Context, bid int64) (map[int64]AR, error) {
 }
 
 // GetAllARs reads all AccountRules for the supplied BID
-func GetAllARs(ctx context.Context, id int64) ([]AR, error) {
+func GetAllARs(ctx context.Context, BID int64) ([]AR, error) {
 
 	var (
 		err error
@@ -215,7 +215,7 @@ func GetAllARs(ctx context.Context, id int64) ([]AR, error) {
 	}
 
 	var rows *sql.Rows
-	fields := []interface{}{id}
+	fields := []interface{}{BID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.GetAllARs)
 		defer stmt.Close()
@@ -279,7 +279,7 @@ func GetARsByFLAGS(ctx context.Context, bid int64, FLAGS uint64) ([]AR, error) {
 	}
 
 	var rows *sql.Rows
-	fields := []interface{}{bid, FLAGS}
+	fields := []interface{}{bid, FLAGS, FLAGS}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.GetARsByFLAGS)
 		defer stmt.Close()
@@ -4787,6 +4787,7 @@ func GetRentableTypeDown(ctx context.Context, bid int64, s string, limit int) ([
 	for rows.Next() {
 		var t RentableTypeDown
 		err = ReadRentableTypeDown(rows, &t)
+		t.Recid = t.RID
 		if err != nil {
 			return m, err
 		}
@@ -6698,6 +6699,29 @@ func GetTaskList(ctx context.Context, id int64) (TaskList, error) {
 	return a, ReadTaskList(row, &a)
 }
 
+// GetTaskListInstanceInRange returns a tasklist instance where
+// the PTLID matches the supplied ptlid and the due date falls in the
+// supplied date range.
+//
+// returns the tasklist if found, or an empty task list if not found
+//-----------------------------------------------------------------------------
+func GetTaskListInstanceInRange(ctx context.Context, id int64, dt1, dt2 *time.Time) (TaskList, error) {
+	var a TaskList
+	if authCheck(ctx) {
+		return a, ErrSessionRequired
+	}
+	var row *sql.Row
+	fields := []interface{}{id, dt1, dt2}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetTaskListInstanceInRange)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.GetTaskListInstanceInRange.QueryRow(fields...)
+	}
+	return a, ReadTaskList(row, &a)
+}
+
 // GetTaskDescriptor returns the tasklist with the supplied id
 func GetTaskDescriptor(ctx context.Context, id int64) (TaskDescriptor, error) {
 	var a TaskDescriptor
@@ -6831,6 +6855,39 @@ func GetTaskListDefinitionByName(ctx context.Context, bid int64, name string) (T
 		row = RRdb.Prepstmt.GetTaskListDefinitionByName.QueryRow(fields...)
 	}
 	return a, ReadTaskListDefinition(row, &a)
+}
+
+// CheckForTLDInstances returns true if there are any instances of the
+// supplied TLDID or false if there are none.
+//
+// INPUTS:
+//    id = the TLDID to search for
+//
+// RETURNS
+//    count: false if no instances found, true otherwise
+//    error: any error encountered.
+//-----------------------------------------------------------------------------
+func CheckForTLDInstances(ctx context.Context, id int64) (bool, error) {
+	var count int
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		_, ok := SessionFromContext(ctx)
+		if !ok {
+			return false, ErrSessionRequired
+		}
+	}
+
+	var row *sql.Row
+	fields := []interface{}{id}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.CheckForTLDInstances)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.CheckForTLDInstances.QueryRow(fields...)
+	}
+	return (count > 0), row.Scan(&count)
 }
 
 //=======================================================
