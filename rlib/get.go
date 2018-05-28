@@ -6946,33 +6946,49 @@ func GetTransactantTypeDown(ctx context.Context, bid int64, s string, limit int)
 
 // GetTCIDByNote used to get TCID from Note Comment
 // originally to get it from people csv Notes field
-func GetTCIDByNote(ctx context.Context, cmt string) (int64, error) {
+func GetTCIDByNote(ctx context.Context, cmt string) (map[int64]string, error) {
 
 	var (
-		// err  error
-		tcid int64
+		err     error
+		tcidMap = make(map[int64]string)
 	)
 
 	// session... context
 	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
 		_, ok := SessionFromContext(ctx)
 		if !ok {
-			return tcid, ErrSessionRequired
+			return tcidMap, ErrSessionRequired
 		}
 	}
 
-	// just return first, in case of duplicate
-	// TODO: need to verify
-	var row *sql.Row
+	var rows *sql.Rows
 	fields := []interface{}{cmt}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.FindTCIDByNote)
 		defer stmt.Close()
-		row = stmt.QueryRow(fields...)
+		rows, err = stmt.Query(fields...)
 	} else {
-		row = RRdb.Prepstmt.FindTCIDByNote.QueryRow(fields...)
+		rows, err = RRdb.Prepstmt.FindTCIDByNote.Query(fields...)
 	}
-	return tcid, row.Scan(&tcid)
+
+	if err != nil {
+		return tcidMap, err
+	}
+	defer rows.Close()
+
+	for i := 0; rows.Next(); i++ {
+		var id int64
+		var cmmt string
+		err = rows.Scan(&id, &cmmt)
+
+		if err != nil {
+			return tcidMap, err
+		}
+		if id != 0 {
+			tcidMap[id] = cmmt
+		}
+	}
+	return tcidMap, rows.Err()
 }
 
 // GetTransactantByPhoneOrEmail searches for a transactoant match on the phone number or email
