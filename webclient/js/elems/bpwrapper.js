@@ -11,6 +11,7 @@
     buildROVReceiptElements,buildTaskListElements,buildTaskListDefElements,
     finishTaskListForm, createDepositForm, createPayorStmtForm,
     createStmtForm, createRentalAgreementForm, finishForms, finishTLDForm,
+    buildClosePeriodElements,
 */
 
 "use strict";

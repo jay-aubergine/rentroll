@@ -12,6 +12,7 @@
 MODFILE="dbqqqmods.sql"
 MYSQL="mysql --no-defaults"
 MYSQLDUMP="mysqldump --no-defaults"
+DBNAME="rentroll"
 
 #=====================================================
 #  History of db mods
@@ -295,6 +296,80 @@ MYSQLDUMP="mysqldump --no-defaults"
 # 16th March, 2018
 # ALTER TABLE Rentable ADD Comment VARCHAR(2048) NOT NULL DEFAULT ''; -- Add Comment textfield to Rentable table
 
+# May 5, 2018
+# ALTER TABLE TaskList ADD EmailList VARCHAR(2048) NOT NULL DEFAULT '' AFTER PreDoneUID;
+
+# May 5, 2018
+#     Somehow, phonebook schema is getting grafted onto the rentroll database
+# DROP TABLE IF EXISTS classes;
+# DROP TABLE IF EXISTS companies;
+# DROP TABLE IF EXISTS compensation;
+# DROP TABLE IF EXISTS counters;
+# DROP TABLE IF EXISTS deductionlist;
+# DROP TABLE IF EXISTS deductions;
+# DROP TABLE IF EXISTS departments;
+# DROP TABLE IF EXISTS fieldperms;
+# DROP TABLE IF EXISTS jobtitles;
+# DROP TABLE IF EXISTS people;
+# DROP TABLE IF EXISTS roles;
+# DROP TABLE IF EXISTS sessions;
+
+# May 8, 2018
+# ALTER TABLE TaskList ADD DtLastNotify DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00' AFTER EmailList;
+# ALTER TABLE TaskList ADD DurWait BIGINT NOT NULL DEFAULT 0 AFTER DtLastNotify;
+# ALTER TABLE TaskListDefinition ADD EmailList VARCHAR(2048) NOT NULL DEFAULT '' AFTER FLAGS;
+
+# May 9, 2018
+# ALTER TABLE TaskList CHANGE DurWait DurWait BIGINT NOT NULL DEFAULT 86400000000000;
+
+# May 11, 2018
+# ALTER TABLE TaskList ADD TLDID BIGINT NOT NULL DEFAULT 0 AFTER BID;
+
+# May 14, 2018
+# ALTER TABLE TaskList ADD PTLID BIGINT NOT NULL DEFAULT 0 AFTER BID;
+
+# May 16, 2018
+# ALTER TABLE RentableTypes ADD ARID BIGINT NOT NULL DEFAULT 0 AFTER FLAGS;
+
+# May 25, 2018
+# ALTER TABLE Business ADD ClosePeriodTLID BIGINT NOT NULL DEFAULT 0 AFTER DefaultGSRPC;
+
+# May 25, 2018
+# DROP TABLE IF EXISTS FlowPart;
+# DROP TABLE IF EXISTS Flow;
+# CREATE TABLE Flow (
+#     FlowID BIGINT NOT NULL AUTO_INCREMENT,
+#     BID BIGINT NOT NULL DEFAULT 0,                                                         -- Business id
+#     FlowType VARCHAR(50) NOT NULL DEFAULT '',                                              -- for which flow we're storing data ("RA=Rental Agreement Flow")
+#     Data JSON DEFAULT NULL,                                                                -- JSON Data for each flow type
+#     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was it last updated
+#     LastModBy BIGINT NOT NULL DEFAULT 0,                                                   -- who modified it last
+#     CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,                                 -- when was it created
+#     CreateBy BIGINT NOT NULL DEFAULT 0,                                                    -- who created it
+#     PRIMARY KEY(FlowID)
+# );
+
+# May 28, 2018
+# DROP TABLE IF EXISTS FlowPart;
+
+# May 29, 2018
+# DROP TABLE IF EXISTS ClosePeriod;
+# CREATE TABLE ClosePeriod (
+#     CPID BIGINT NOT NULL AUTO_INCREMENT,                        -- Close Period ID
+#     BID BIGINT NOT NULL DEFAULT 0,                              -- Business id
+#     TLID BIGINT NOT NULL DEFAULT 0,                             -- Task List that was used for close
+#     Dt DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',         -- Date/Time of close
+#     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
+#     LastModBy BIGINT NOT NULL DEFAULT 0,                        -- employee UID (from phonebook) that modified it
+#     CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,      -- when was this record created
+#     CreateBy BIGINT NOT NULL DEFAULT 0,                         -- employee UID (from phonebook) that created this record
+#     PRIMARY KEY (CPID)
+# );
+
+# Jun 1, 2018
+# ALTER TABLE RentalAgreementRentables ADD PRID BIGINT NOT NULL DEFAULT 0 AFTER RID;
+# ALTER TABLE RentableTypes DROP COLUMN ManageToBudget;
+
 #=====================================================
 #  Put modifications to schema in the lines below
 #=====================================================
@@ -305,30 +380,38 @@ EOF
 #  Put dir/sqlfilename in the list below
 #=====================================================
 declare -a dbs=(
-    'acctbal/baltest.sql'
-    'payorstmt/pstmt.sql'
-    'rfix/rcptfixed.sql'
-    'rfix/receipts.sql'
-    'roller/prodrr.sql'
-    'rr/rr.sql'
-    'tws/rr.sql'
-    'webclient/webclientTest.sql'
-    'websvc1/asmtest.sql'
-    'websvc3/tasks.sql'
-    'workerasm/rr.sql'
+	../tools/dbgen/empty.sql
+	acctbal/baltest.sql
+	closeperiod/rr.sql
+	payorstmt/pstmt.sql
+	rfix/rcptfixed.sql
+	rfix/receipts.sql
+	roller/prodrr.sql
+	rr/rr.sql
+	tws/rr.sql
+	tws2/rrtl.sql
+	tws2/moonshine.sql
+	tws3/rr.sql
+	webclient/accord.sql
+	webclient/webclientTest.sql
+	websvc1/asmtest.sql
+	websvc3/tasks.sql
+	workerasm/rex.sql
+	workerasm/rr.sql
 )
 
 for f in "${dbs[@]}"
 do
     if [ -f ${f} ]; then
-	echo -n "${f}: loading... "
-	${MYSQL} rentroll < ${f}
-	echo -n "updating... "
-	${MYSQL} rentroll < ${MODFILE}
-	echo -n "saving... "
-	${MYSQLDUMP} rentroll > ${f}
-	echo "done"
+    	echo "DROP DATABASE IF EXIST ${DBNAME}; create database rentroll"
+		echo -n "${f}: loading... "
+		${MYSQL} ${DBNAME} < ${f}
+		echo -n "updating... "
+		${MYSQL} ${DBNAME} < ${MODFILE}
+		echo -n "saving... "
+		${MYSQLDUMP} ${DBNAME} > ${f}
+		echo "done"
     else
-	echo "file not found: ${f}"
+		echo "file not found: ${f}"
     fi
 done

@@ -47,14 +47,26 @@ func ReadBuildingData(row *sql.Row, a *Building) error {
 
 // ReadBusiness reads a full Business structure from the database based on the supplied row object
 func ReadBusiness(row *sql.Row, a *Business) error {
-	err := row.Scan(&a.BID, &a.Designation, &a.Name, &a.DefaultRentCycle, &a.DefaultProrationCycle, &a.DefaultGSRPC, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.BID, &a.Designation, &a.Name, &a.DefaultRentCycle, &a.DefaultProrationCycle, &a.DefaultGSRPC, &a.ClosePeriodTLID, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadBusinesses reads a full Business structure from the database based on the supplied rows object
 func ReadBusinesses(rows *sql.Rows, a *Business) error {
-	return rows.Scan(&a.BID, &a.Designation, &a.Name, &a.DefaultRentCycle, &a.DefaultProrationCycle, &a.DefaultGSRPC, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.BID, &a.Designation, &a.Name, &a.DefaultRentCycle, &a.DefaultProrationCycle, &a.DefaultGSRPC, &a.ClosePeriodTLID, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+}
+
+// ReadClosePeriod reads a full ClosePeriod structure from the database based on the supplied row object
+func ReadClosePeriod(row *sql.Row, a *ClosePeriod) error {
+	err := row.Scan(&a.CPID, &a.BID, &a.TLID, &a.Dt, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	SkipSQLNoRowsError(&err)
+	return err
+}
+
+// ReadClosePeriods reads a full ClosePeriod structure from the database based on the supplied rows object
+func ReadClosePeriods(rows *sql.Rows, a *ClosePeriod) error {
+	return rows.Scan(&a.CPID, &a.BID, &a.TLID, &a.Dt, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadCustomAttribute reads a full CustomAttribute structure from the database based on the supplied row object
@@ -445,7 +457,7 @@ func ReadReceiptAllocations(rows *sql.Rows, a *ReceiptAllocation) error {
 
 // ReadRentableTypeDown reads a full RentableTypeDown structure of data from the database based on the supplied Row pointer.
 func ReadRentableTypeDown(rows *sql.Rows, a *RentableTypeDown) error {
-	return rows.Scan(&a.Recid, &a.RentableName)
+	return rows.Scan(&a.RID, &a.RentableName)
 }
 
 // ReadRentable reads a full Rentable structure of data from the database based on the supplied Row pointer.
@@ -462,14 +474,14 @@ func ReadRentables(rows *sql.Rows, a *Rentable) error {
 
 // ReadRentableType reads a full RentableType structure of data from the database based on the supplied Row pointer.
 func ReadRentableType(row *sql.Row, a *RentableType) error {
-	err := row.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ManageToBudget, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ARID, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadRentableTypes reads a full RentableType structure of data from the database based on the supplied Rows pointer.
 func ReadRentableTypes(rows *sql.Rows, a *RentableType) error {
-	return rows.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ManageToBudget, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.RTID, &a.BID, &a.Style, &a.Name, &a.RentCycle, &a.Proration, &a.GSRPC, &a.ARID, &a.FLAGS, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadRentableTypeRef reads a full RentableTypeRef structure of data from the database based on the supplied Row pointer.
@@ -646,16 +658,16 @@ func ReadTasks(rows *sql.Rows, a *Task) error {
 }
 
 // ReadTaskList reads a full TaskList structure from the database based on the supplied row object
-//            flds = "TLID,     BID,    Name,    Cycle,    DtDue,    DtPreDue,    DtDone,    DtPreDone,    FLAGS,    DoneUID,    PreDoneUID,    Comment,    CreateTS,    CreateBy,    LastModTime,    LastModBy"
+//            flds = "TLID,     BID, TLDID,    Name,    Cycle,    DtDue,    DtPreDue,    DtDone,    DtPreDone,    FLAGS,    DoneUID,    PreDoneUID,    Comment,    CreateTS,    CreateBy,    LastModTime,    LastModBy"
 func ReadTaskList(row *sql.Row, a *TaskList) error {
-	err := row.Scan(&a.TLID, &a.BID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.TLID, &a.BID, &a.PTLID, &a.TLDID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.EmailList, &a.DtLastNotify, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadTaskLists reads a full TaskList structure from the database based on the supplied rows
 func ReadTaskLists(rows *sql.Rows, a *TaskList) error {
-	return rows.Scan(&a.TLID, &a.BID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.TLID, &a.BID, &a.PTLID, &a.TLDID, &a.Name, &a.Cycle, &a.DtDue, &a.DtPreDue, &a.DtDone, &a.DtPreDone, &a.FLAGS, &a.DoneUID, &a.PreDoneUID, &a.EmailList, &a.DtLastNotify, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 // ReadTaskDescriptor reads a full TaskDescriptor structure from the database based on the supplied row object
@@ -672,14 +684,14 @@ func ReadTaskDescriptors(rows *sql.Rows, a *TaskDescriptor) error {
 
 // ReadTaskListDefinition reads a full TaskListDefinition structure from the database based on the supplied row object
 func ReadTaskListDefinition(row *sql.Row, a *TaskListDefinition) error {
-	err := row.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	err := row.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.EmailList, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
 // ReadTaskListDefinitions reads a full TaskListDefinition structure from the database based on the supplied rows
 func ReadTaskListDefinitions(rows *sql.Rows, a *TaskListDefinition) error {
-	return rows.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+	return rows.Scan(&a.TLDID, &a.BID, &a.Name, &a.Cycle, &a.Epoch, &a.EpochDue, &a.EpochPreDue, &a.FLAGS, &a.EmailList, &a.DurWait, &a.Comment, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
 //---------------------
@@ -741,16 +753,14 @@ func ReadVehicles(rows *sql.Rows, a *Vehicle) error {
 		&a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }
 
-// ReadFlowPart reads a full FlowPart structure from the database based on the supplied row object
-func ReadFlowPart(row *sql.Row, a *FlowPart) error {
-	err := row.Scan(&a.FlowPartID, &a.BID, &a.Flow, &a.FlowID, &a.PartType,
-		&a.Data, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+// ReadFlow reads a full Flow structure from the database based on the supplied row object
+func ReadFlow(row *sql.Row, a *Flow) error {
+	err := row.Scan(&a.FlowID, &a.BID, &a.FlowType, &a.Data, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 	SkipSQLNoRowsError(&err)
 	return err
 }
 
-// ReadFlowParts reads a full FlowPart structure from the database based on the supplied rows object
-func ReadFlowParts(rows *sql.Rows, a *FlowPart) error {
-	return rows.Scan(&a.FlowPartID, &a.BID, &a.Flow, &a.FlowID, &a.PartType,
-		&a.Data, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
+// ReadFlows reads a full Flow structure from the database based on the supplied rows object
+func ReadFlows(rows *sql.Rows, a *Flow) error {
+	return rows.Scan(&a.FlowID, &a.BID, &a.FlowType, &a.Data, &a.CreateTS, &a.CreateBy, &a.LastModTime, &a.LastModBy)
 }

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Abort commit if mentioned pattern is staged.
+git secrets --pre_commit_hook -- "$@"
+
+# Regular expression for list of files which should not be commit in git
+FILES="**conf.*.json"
+
+# Get list of staged file after excluding deleted file.
+# Count number of files in list. If it is greater than zero then abort the commit
+NOFILE=`git diff --cached --name-status | awk '$1 != "D" { print $2 }' | grep "${FILES}" | wc -l`
+if [ ${NOFILE} -gt 0 ]
+then
+    echo "pre-commit: Please un-stage keys files."
+    LISTOFFILES=`git diff --cached --name-status | grep "${FILES}"`
+    echo "${LISTOFFILES}"
+    exit 1
+fi

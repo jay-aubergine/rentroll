@@ -232,7 +232,8 @@ CREATE TABLE RentalAgreementRentables (
     RARID BIGINT NOT NULL AUTO_INCREMENT,                     -- internal unique id
     RAID BIGINT NOT NULL DEFAULT 0,                           -- Rental Agreement id
     BID BIGINT NOT NULL DEFAULT 0,                            -- Business (so that we can process by Business)
-    RID BIGINT NOT NULL DEFAULT 0,                            -- Rentable id
+    RID BIGINT NOT NULL DEFAULT 0,                            -- Rentable ID
+    PRID BIGINT NOT NULL DEFAULT 0,                           -- Parent Rentable ID
     CLID BIGINT NOT NULL DEFAULT 0,                           -- Commission Ledger (for outside salespeople to get a commission)
     ContractRent DECIMAL(19,4) NOT NULL DEFAULT 0.0,          -- The contract rent for this rentable
     RARDtStart DATE NOT NULL DEFAULT '1970-01-01 00:00:00',   -- date when this Rentable was added to the agreement
@@ -430,16 +431,17 @@ CREATE TABLE OtherDeliverables (
 
 CREATE TABLE Business (
     BID BIGINT NOT NULL AUTO_INCREMENT,
-    BUD VARCHAR(100) NOT NULL DEFAULT '',                                         -- Business Unit Designation
-    Name VARCHAR(100) NOT NULL DEFAULT '',                                        -- Business Full Name
-    DefaultRentCycle SMALLINT NOT NULL DEFAULT 0,                                 -- default for every rentable type - useful to initialize UI
-    DefaultProrationCycle SMALLINT NOT NULL DEFAULT 0,                            -- default for every rentable type - useful to initialize UI
-    DefaultGSRPC SMALLINT NOT NULL DEFAULT 0,                                     -- default for every rentable type - useful to initialize UI
-    FLAGS BIGINT NOT NULL DEFAULT 0,                                              -- last bit =0(EDI disabled), =1(EDI enabled)
+    BUD VARCHAR(100) NOT NULL DEFAULT '',                       -- Business Unit Designation
+    Name VARCHAR(100) NOT NULL DEFAULT '',                      -- Business Full Name
+    DefaultRentCycle SMALLINT NOT NULL DEFAULT 0,               -- default for every rentable type - useful to initialize UI
+    DefaultProrationCycle SMALLINT NOT NULL DEFAULT 0,          -- default for every rentable type - useful to initialize UI
+    DefaultGSRPC SMALLINT NOT NULL DEFAULT 0,                   -- default for every rentable type - useful to initialize UI
+    ClosePeriodTLID BIGINT NOT NULL DEFAULT 0,                  -- The tasklist needed for closing a period
+    FLAGS BIGINT NOT NULL DEFAULT 0,                            -- last bit =0(EDI disabled), =1(EDI enabled)
     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
-    LastModBy BIGINT NOT NULL DEFAULT 0,                                          -- employee UID (from phonebook) that modified it
-    CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,                        -- when was this record created
-    CreateBy BIGINT NOT NULL DEFAULT 0,                                           -- employee UID (from phonebook) that created this record
+    LastModBy BIGINT NOT NULL DEFAULT 0,                        -- employee UID (from phonebook) that modified it
+    CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,      -- when was this record created
+    CreateBy BIGINT NOT NULL DEFAULT 0,                         -- employee UID (from phonebook) that created this record
     PRIMARY KEY (BID)
 );
 --    ParkingPermitInUse SMALLINT NOT NULL DEFAULT 0,           -- yes/no  0 = no, 1 = yes
@@ -473,15 +475,25 @@ CREATE TABLE Task (
 CREATE TABLE TaskList (
     TLID BIGINT NOT NULL AUTO_INCREMENT,
     BID BIGINT NOT NULL DEFAULT 0,
+    PTLID BIGINT NOT NULL DEFAULT 0,                            -- Parent TLID or 0 if this is the parent (first) of a repeating set
+    TLDID BIGINT NOT NULL DEFAULT 0,                            -- the TaskListDefinition that describes this tasklist
     Name VARCHAR(256) NOT NULL DEFAULT '',                      -- TaskList name
     Cycle BIGINT NOT NULL DEFAULT 0,                            -- recurrence frequency (not editable)
     DtDue DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',      -- All tasks in task list are due on this date
     DtPreDue DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',   -- All tasks in task list pre-completion date
     DtDone DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',     -- Task completion Date
     DtPreDone DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',  -- Task Pre Completion Date
-    FLAGS BIGINT NOT NULL DEFAULT 0,                            -- 1<<0 - 0 = active, 1 = inactive
+    FLAGS BIGINT NOT NULL DEFAULT 0,                            -- 1<<0 : 0 = active, 1 = inactive
+                                                                -- 1<<1 : 0 = task list definition does not have a PreDueDate, 1 = has a PreDueDate
+                                                                -- 1<<1 : 0 = task list definition does not have a DueDate, 1 = has a DueDate
+                                                                -- 1<<3 : 0 = DtPreDue has not been set, 1 = DtPreDue has been set
+                                                                -- 1<<4 : 0 = DtDue has not been set, 1 = DtDue has been set
+                                                                -- 1<<5 : 0 = no notification has been sent, 1 = Notification sent on DtLastNotify
     DoneUID BIGINT NOT NULL DEFAULT 0,                          -- user who marked this task done
     PreDoneUID BIGINT NOT NULL DEFAULT 0,                       -- user who marked this task predone
+    EmailList VARCHAR(2048) NOT NULL DEFAULT '',                -- list of email addresses for when due date arrives
+    DtLastNotify DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00', -- timestamp of last notification
+    DurWait BIGINT NOT NULL DEFAULT 86400000000000,             -- how long to wait after failure notification for next check (default: 1 day)
     Comment VARCHAR(2048) NOT NULL DEFAULT '',                  -- any user comments
     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
     LastModBy BIGINT NOT NULL DEFAULT 0,                        -- employee UID (from phonebook) that modified it
@@ -516,6 +528,8 @@ CREATE TABLE TaskListDefinition (
     EpochDue DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',   -- Task Due Date
     EpochPreDue DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',-- Pre Completion due date
     FLAGS BIGINT NOT NULL DEFAULT 0,                            -- 1<<0 : 0 = active, 1 = inactive
+    EmailList VARCHAR(2048) NOT NULL DEFAULT '',                -- list of email addresses for when due date arrives - will apply to all TaskList instances
+    DurWait BIGINT NOT NULL DEFAULT 86400000000000,             -- how long to wait after failure notification for next check (default: 1 day)
     Comment VARCHAR(2048) NOT NULL DEFAULT '',                  -- any user comments
     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
     LastModBy BIGINT NOT NULL DEFAULT 0,                        -- employee UID (from phonebook) that modified it
@@ -536,8 +550,11 @@ CREATE TABLE RentableTypes (
     RentCycle BIGINT NOT NULL DEFAULT 0,                        -- rent accrual frequency
     Proration BIGINT NOT NULL DEFAULT 0,                        -- prorate frequency
     GSRPC BIGINT NOT NULL DEFAULT 0,                            -- Increments in which GSR is calculated to account for rate changes
-    ManageToBudget SMALLINT NOT NULL DEFAULT 0,                 -- 0 do not manage this category of Rentable to budget, 1 = manage to budget defined by MarketRate
-    FLAGS BIGINT NOT NULL DEFAULT 0,                            -- 0=active, 1=inactive
+    FLAGS BIGINT NOT NULL DEFAULT 0,                            -- 1<<0:  0=active, 1=inactive
+                                                                -- 1<<1:  0=cannot be a child rentable, 1 = can be a child
+                                                                -- 1<<2:  0=No(do not manage this category of Rentable to budget)
+                                                                --        1=Yes(manage to budget defined by MarketRate & MRs are required)
+    ARID BIGINT NOT NULL DEFAULT 0,                             -- ARID reference, for default rent amount for this rentable types
     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
     LastModBy BIGINT NOT NULL DEFAULT 0,                        -- employee UID (from phonebook) that modified it
     CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,      -- when was this record created
@@ -1023,9 +1040,12 @@ CREATE TABLE AR (
     DtStart DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',-- epoch date for recurring assessments; the date/time of the assessment for instances
     DtStop DATETIME NOT NULL DEFAULT '9999-12-31 00:00:00', -- stop date for recurrent assessments; the date/time of the assessment for instances
     FLAGS BIGINT NOT NULL DEFAULT 0,                        -- 1<<0 = apply funds to Receive accts,  (that is allocate it immediately)
-                                                            -- 1<<1 - populate on Rental Agreement,
+                                                            -- 1<<1 - Auto Populate on New Rental Agreement,
                                                             -- 1<<2 = RAID required,
                                                             -- 1<<3 = subARIDs apply (i.e., there are other ar rules that apply to this AR Rule)
+                                                            -- 1<<4 = Is Rent Assessment
+                                                            -- 1<<5 = Is Security Deposit Assessment
+                                                            -- 1<<6 = Is NonRecur charge
     DefaultAmount DECIMAL(19,4) NOT NULL DEFAULT 0.0,       -- amount to initialize interface with
     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
     LastModBy BIGINT NOT NULL DEFAULT 0,                    -- employee UID (from phonebook) that modified it
@@ -1365,22 +1385,33 @@ CREATE TABLE LedgerMarkerAudit (
     CreateBy BIGINT NOT NULL DEFAULT 0                          -- employee UID (from phonebook) that created this record
 );
 
+CREATE TABLE ClosePeriod (
+    CPID BIGINT NOT NULL AUTO_INCREMENT,                        -- Close Period ID
+    BID BIGINT NOT NULL DEFAULT 0,                              -- Business id
+    TLID BIGINT NOT NULL DEFAULT 0,                             -- Task List that was used for close
+    Dt DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00',         -- Date/Time of close
+    LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was this record last written
+    LastModBy BIGINT NOT NULL DEFAULT 0,                        -- employee UID (from phonebook) that modified it
+    CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,      -- when was this record created
+    CreateBy BIGINT NOT NULL DEFAULT 0,                         -- employee UID (from phonebook) that created this record
+    PRIMARY KEY (CPID)
+);
+
+
+
 -- **************************************
 -- ****                              ****
--- ****       TEMP FLOW PART         ****
+-- ****            FLOW              ****
 -- ****                              ****
 -- **************************************
-CREATE TABLE FlowPart (
-    FlowPartID BIGINT NOT NULL AUTO_INCREMENT,
+CREATE TABLE Flow (
+    FlowID BIGINT NOT NULL AUTO_INCREMENT,
     BID BIGINT NOT NULL DEFAULT 0,                                                         -- Business id
-    Flow VARCHAR(50) NOT NULL DEFAULT '',                                                  -- for which flow we're storing data ("RA=Rental Agreement Flow")
-    FlowID VARCHAR(50) NOT NULL DEFAULT '',                                                -- unique random flow ID for which we will store relavant json data
-    PartType SMALLINT NOT NULL DEFAULT 0,                                                  -- for which part type ("ASM", "PET", "VEHICLE")
+    FlowType VARCHAR(50) NOT NULL DEFAULT '',                                              -- for which flow we're storing data ("RA=Rental Agreement Flow")
     Data JSON DEFAULT NULL,                                                                -- JSON Data for each flow type
     LastModTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- when was it last updated
     LastModBy BIGINT NOT NULL DEFAULT 0,                                                   -- who modified it last
     CreateTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,                                 -- when was it created
     CreateBy BIGINT NOT NULL DEFAULT 0,                                                    -- who created it
-    PRIMARY KEY(FlowPartID),
-    UNIQUE KEY FlowPartUnique (FlowPartID, BID, FlowID)
+    PRIMARY KEY(FlowID)
 );

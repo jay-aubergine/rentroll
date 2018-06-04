@@ -1,7 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.16, for osx10.12 (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.22, for Linux (x86_64)
 --
--- Host: 127.0.0.1    Database: rentroll
+-- Host: localhost    Database: rentroll
 -- ------------------------------------------------------
+-- Server version	5.7.22-0ubuntu0.16.04.1-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -202,6 +203,7 @@ CREATE TABLE `Business` (
   `DefaultRentCycle` smallint(6) NOT NULL DEFAULT '0',
   `DefaultProrationCycle` smallint(6) NOT NULL DEFAULT '0',
   `DefaultGSRPC` smallint(6) NOT NULL DEFAULT '0',
+  `ClosePeriodTLID` bigint(20) NOT NULL DEFAULT '0',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -217,7 +219,7 @@ CREATE TABLE `Business` (
 
 LOCK TABLES `Business` WRITE;
 /*!40000 ALTER TABLE `Business` DISABLE KEYS */;
-INSERT INTO `Business` VALUES (1,'REX','JGM First, LLC',6,4,4,'2017-11-10 23:24:22',0,'2017-11-10 23:24:22',0,0),(2,'BRO','Accord/BRO Members, LLC',6,4,4,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(3,'CCC','California Commerce Centr',6,4,4,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(4,'OL2','Accord/OKC Members LLC',6,4,4,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(5,'PAC','Accord/PAC Members LLC',6,4,4,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(6,'SUM','JGM First, LLC',6,4,4,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0);
+INSERT INTO `Business` VALUES (1,'REX','JGM First, LLC',6,4,4,0,'2017-11-10 23:24:22',0,'2017-11-10 23:24:22',0,0),(2,'BRO','Accord/BRO Members, LLC',6,4,4,0,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(3,'CCC','California Commerce Centr',6,4,4,0,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(4,'OL2','Accord/OKC Members LLC',6,4,4,0,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(5,'PAC','Accord/PAC Members LLC',6,4,4,0,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0),(6,'SUM','JGM First, LLC',6,4,4,0,'2018-01-17 18:49:44',0,'2018-01-17 18:49:44',0,0);
 /*!40000 ALTER TABLE `Business` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -271,6 +273,35 @@ CREATE TABLE `BusinessPaymentTypes` (
 LOCK TABLES `BusinessPaymentTypes` WRITE;
 /*!40000 ALTER TABLE `BusinessPaymentTypes` DISABLE KEYS */;
 /*!40000 ALTER TABLE `BusinessPaymentTypes` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `ClosePeriod`
+--
+
+DROP TABLE IF EXISTS `ClosePeriod`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ClosePeriod` (
+  `CPID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `BID` bigint(20) NOT NULL DEFAULT '0',
+  `TLID` bigint(20) NOT NULL DEFAULT '0',
+  `Dt` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `LastModBy` bigint(20) NOT NULL DEFAULT '0',
+  `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `CreateBy` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`CPID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ClosePeriod`
+--
+
+LOCK TABLES `ClosePeriod` WRITE;
+/*!40000 ALTER TABLE `ClosePeriod` DISABLE KEYS */;
+/*!40000 ALTER TABLE `ClosePeriod` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -557,35 +588,32 @@ LOCK TABLES `Expense` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `FlowPart`
+-- Table structure for table `Flow`
 --
 
-DROP TABLE IF EXISTS `FlowPart`;
+DROP TABLE IF EXISTS `Flow`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `FlowPart` (
-  `FlowPartID` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `Flow` (
+  `FlowID` bigint(20) NOT NULL AUTO_INCREMENT,
   `BID` bigint(20) NOT NULL DEFAULT '0',
-  `Flow` varchar(50) NOT NULL DEFAULT '',
-  `FlowID` varchar(50) NOT NULL DEFAULT '',
-  `PartType` smallint(6) NOT NULL DEFAULT '0',
+  `FlowType` varchar(50) NOT NULL DEFAULT '',
   `Data` json DEFAULT NULL,
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `CreateBy` bigint(20) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`FlowPartID`),
-  UNIQUE KEY `FlowPartUnique` (`FlowPartID`,`BID`,`FlowID`)
+  PRIMARY KEY (`FlowID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `FlowPart`
+-- Dumping data for table `Flow`
 --
 
-LOCK TABLES `FlowPart` WRITE;
-/*!40000 ALTER TABLE `FlowPart` DISABLE KEYS */;
-/*!40000 ALTER TABLE `FlowPart` ENABLE KEYS */;
+LOCK TABLES `Flow` WRITE;
+/*!40000 ALTER TABLE `Flow` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Flow` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1751,8 +1779,8 @@ CREATE TABLE `RentableTypes` (
   `RentCycle` bigint(20) NOT NULL DEFAULT '0',
   `Proration` bigint(20) NOT NULL DEFAULT '0',
   `GSRPC` bigint(20) NOT NULL DEFAULT '0',
-  `ManageToBudget` smallint(6) NOT NULL DEFAULT '0',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `ARID` bigint(20) NOT NULL DEFAULT '0',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1767,7 +1795,7 @@ CREATE TABLE `RentableTypes` (
 
 LOCK TABLES `RentableTypes` WRITE;
 /*!40000 ALTER TABLE `RentableTypes` DISABLE KEYS */;
-INSERT INTO `RentableTypes` VALUES (1,1,'Rex1','309 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(2,1,'Rex2','309 1/2 Rexford',6,4,4,1,0,'2018-01-18 09:09:22',267,'2017-11-28 03:44:18',0),(3,1,'Rex3','311 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(4,1,'Rex4','311 1/2 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(5,2,'Office Building','Nickelodeon Office',6,4,6,0,0,'2018-01-24 20:49:23',200,'2018-01-17 22:37:07',200),(6,2,'Garage','Nickelodeon Garage',6,4,6,0,0,'2018-01-24 20:49:44',200,'2018-01-17 22:39:39',200),(7,4,'Office Building','Animation Office',6,4,6,0,0,'2018-01-24 21:33:56',200,'2018-01-24 21:33:56',200),(8,4,'Garage','Animation Garage',6,4,6,0,0,'2018-01-24 21:34:20',200,'2018-01-24 21:34:20',200),(9,6,'Commercial Rehabilitation Facility','Rehabilitation Facility',6,4,6,0,0,'2018-01-25 20:58:33',200,'2018-01-25 20:58:33',200),(10,3,'Condominium Warehouse Unit','Condominium Warehouse Unit',6,4,6,0,0,'2018-01-25 21:15:36',200,'2018-01-25 21:15:36',200),(11,3,'Tenants in Common','Tenants in Common',6,4,6,0,0,'2018-01-25 21:43:29',200,'2018-01-25 21:20:50',200),(12,5,'Condominium Warehouse','Condominium Warehouse',6,4,6,0,0,'2018-01-25 22:16:33',200,'2018-01-25 22:16:33',200);
+INSERT INTO `RentableTypes` VALUES (1,1,'Rex1','309 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(2,1,'Rex2','309 1/2 Rexford',6,4,4,0,0,'2018-01-18 09:09:22',267,'2017-11-28 03:44:18',0),(3,1,'Rex3','311 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(4,1,'Rex4','311 1/2 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(5,2,'Office Building','Nickelodeon Office',6,4,6,0,0,'2018-01-24 20:49:23',200,'2018-01-17 22:37:07',200),(6,2,'Garage','Nickelodeon Garage',6,4,6,0,0,'2018-01-24 20:49:44',200,'2018-01-17 22:39:39',200),(7,4,'Office Building','Animation Office',6,4,6,0,0,'2018-01-24 21:33:56',200,'2018-01-24 21:33:56',200),(8,4,'Garage','Animation Garage',6,4,6,0,0,'2018-01-24 21:34:20',200,'2018-01-24 21:34:20',200),(9,6,'Commercial Rehabilitation Facility','Rehabilitation Facility',6,4,6,0,0,'2018-01-25 20:58:33',200,'2018-01-25 20:58:33',200),(10,3,'Condominium Warehouse Unit','Condominium Warehouse Unit',6,4,6,0,0,'2018-01-25 21:15:36',200,'2018-01-25 21:15:36',200),(11,3,'Tenants in Common','Tenants in Common',6,4,6,0,0,'2018-01-25 21:43:29',200,'2018-01-25 21:20:50',200),(12,5,'Condominium Warehouse','Condominium Warehouse',6,4,6,0,0,'2018-01-25 22:16:33',200,'2018-01-25 22:16:33',200);
 /*!40000 ALTER TABLE `RentableTypes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1942,6 +1970,7 @@ CREATE TABLE `RentalAgreementRentables` (
   `RAID` bigint(20) NOT NULL DEFAULT '0',
   `BID` bigint(20) NOT NULL DEFAULT '0',
   `RID` bigint(20) NOT NULL DEFAULT '0',
+  `PRID` bigint(20) NOT NULL DEFAULT '0',
   `CLID` bigint(20) NOT NULL DEFAULT '0',
   `ContractRent` decimal(19,4) NOT NULL DEFAULT '0.0000',
   `RARDtStart` date NOT NULL DEFAULT '1970-01-01',
@@ -1960,7 +1989,7 @@ CREATE TABLE `RentalAgreementRentables` (
 
 LOCK TABLES `RentalAgreementRentables` WRITE;
 /*!40000 ALTER TABLE `RentalAgreementRentables` DISABLE KEYS */;
-INSERT INTO `RentalAgreementRentables` VALUES (1,2,1,1,0,3750.0000,'2014-03-01','2018-02-01','2018-02-14 20:50:14',200,'2017-11-30 18:20:15',0),(2,3,1,2,0,4000.0000,'2016-10-01','2018-01-01','2018-01-10 18:32:35',0,'2017-11-30 18:32:13',0),(3,4,1,3,0,4150.0000,'2016-07-01','2018-07-01','2018-01-10 18:32:35',0,'2017-11-30 18:34:33',0),(4,8,2,5,0,192924.9200,'2018-01-01','2036-09-01','2018-01-17 23:13:37',200,'2018-01-17 23:13:37',200),(5,8,2,6,0,34501.5000,'2018-01-01','2036-09-01','2018-01-24 20:51:54',200,'2018-01-24 20:51:54',200),(6,11,4,7,0,144670.0000,'2015-04-01','2036-09-01','2018-01-25 20:32:46',200,'2018-01-25 20:32:46',200),(7,12,4,7,0,144670.0000,'2015-04-01','2036-09-01','2018-01-25 20:35:16',200,'2018-01-25 20:35:16',200),(8,14,6,15,0,30692.0000,'2018-01-25','2019-01-25','2018-01-25 21:34:06',211,'2018-01-25 21:34:06',211),(9,18,5,16,0,135146.4500,'2007-12-24','2022-12-23','2018-01-25 22:27:39',200,'2018-01-25 22:27:39',200),(10,19,5,17,0,47289.0000,'2015-06-01','2025-05-31','2018-01-25 22:30:31',200,'2018-01-25 22:30:31',200),(11,20,5,20,0,58422.6000,'2009-06-05','2019-06-04','2018-01-25 22:35:49',200,'2018-01-25 22:35:49',200),(12,21,3,13,0,6857.0100,'2010-01-01','9999-01-01','2018-01-31 21:53:59',200,'2018-01-31 21:53:59',200),(13,22,3,9,0,444.0500,'2018-01-31','2019-01-31','2018-01-31 21:55:58',200,'2018-01-31 21:55:58',200),(14,23,3,10,0,3932.9900,'2018-01-31','2018-12-31','2018-01-31 21:57:33',200,'2018-01-31 21:57:33',200),(15,24,3,11,0,1533.5700,'2018-01-31','2018-12-31','2018-01-31 22:00:53',200,'2018-01-31 22:00:53',200),(16,25,3,12,0,2818.6200,'2018-01-01','2018-12-31','2018-01-31 22:02:52',200,'2018-01-31 22:02:52',200),(18,26,3,14,0,601.2300,'2018-01-01','2018-12-31','2018-01-31 22:16:18',200,'2018-01-31 22:16:18',200),(19,2,1,3,0,3750.0000,'2014-03-01','2108-02-01','2018-02-20 21:27:16',211,'2018-02-20 21:27:16',211);
+INSERT INTO `RentalAgreementRentables` VALUES (1,2,1,1,0,0,3750.0000,'2014-03-01','2018-02-01','2018-02-14 20:50:14',200,'2017-11-30 18:20:15',0),(2,3,1,2,0,0,4000.0000,'2016-10-01','2018-01-01','2018-01-10 18:32:35',0,'2017-11-30 18:32:13',0),(3,4,1,3,0,0,4150.0000,'2016-07-01','2018-07-01','2018-01-10 18:32:35',0,'2017-11-30 18:34:33',0),(4,8,2,5,0,0,192924.9200,'2018-01-01','2036-09-01','2018-01-17 23:13:37',200,'2018-01-17 23:13:37',200),(5,8,2,6,0,0,34501.5000,'2018-01-01','2036-09-01','2018-01-24 20:51:54',200,'2018-01-24 20:51:54',200),(6,11,4,7,0,0,144670.0000,'2015-04-01','2036-09-01','2018-01-25 20:32:46',200,'2018-01-25 20:32:46',200),(7,12,4,7,0,0,144670.0000,'2015-04-01','2036-09-01','2018-01-25 20:35:16',200,'2018-01-25 20:35:16',200),(8,14,6,15,0,0,30692.0000,'2018-01-25','2019-01-25','2018-01-25 21:34:06',211,'2018-01-25 21:34:06',211),(9,18,5,16,0,0,135146.4500,'2007-12-24','2022-12-23','2018-01-25 22:27:39',200,'2018-01-25 22:27:39',200),(10,19,5,17,0,0,47289.0000,'2015-06-01','2025-05-31','2018-01-25 22:30:31',200,'2018-01-25 22:30:31',200),(11,20,5,20,0,0,58422.6000,'2009-06-05','2019-06-04','2018-01-25 22:35:49',200,'2018-01-25 22:35:49',200),(12,21,3,13,0,0,6857.0100,'2010-01-01','9999-01-01','2018-01-31 21:53:59',200,'2018-01-31 21:53:59',200),(13,22,3,9,0,0,444.0500,'2018-01-31','2019-01-31','2018-01-31 21:55:58',200,'2018-01-31 21:55:58',200),(14,23,3,10,0,0,3932.9900,'2018-01-31','2018-12-31','2018-01-31 21:57:33',200,'2018-01-31 21:57:33',200),(15,24,3,11,0,0,1533.5700,'2018-01-31','2018-12-31','2018-01-31 22:00:53',200,'2018-01-31 22:00:53',200),(16,25,3,12,0,0,2818.6200,'2018-01-01','2018-12-31','2018-01-31 22:02:52',200,'2018-01-31 22:02:52',200),(18,26,3,14,0,0,601.2300,'2018-01-01','2018-12-31','2018-01-31 22:16:18',200,'2018-01-31 22:16:18',200),(19,2,1,3,0,0,3750.0000,'2014-03-01','2108-02-01','2018-02-20 21:27:16',211,'2018-02-20 21:27:16',211);
 /*!40000 ALTER TABLE `RentalAgreementRentables` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2224,6 +2253,8 @@ DROP TABLE IF EXISTS `TaskList`;
 CREATE TABLE `TaskList` (
   `TLID` bigint(20) NOT NULL AUTO_INCREMENT,
   `BID` bigint(20) NOT NULL DEFAULT '0',
+  `PTLID` bigint(20) NOT NULL DEFAULT '0',
+  `TLDID` bigint(20) NOT NULL DEFAULT '0',
   `Name` varchar(256) NOT NULL DEFAULT '',
   `Cycle` bigint(20) NOT NULL DEFAULT '0',
   `DtDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
@@ -2233,6 +2264,9 @@ CREATE TABLE `TaskList` (
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
   `DoneUID` bigint(20) NOT NULL DEFAULT '0',
   `PreDoneUID` bigint(20) NOT NULL DEFAULT '0',
+  `EmailList` varchar(2048) NOT NULL DEFAULT '',
+  `DtLastNotify` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `DurWait` bigint(20) NOT NULL DEFAULT '86400000000000',
   `Comment` varchar(2048) NOT NULL DEFAULT '',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
@@ -2267,6 +2301,8 @@ CREATE TABLE `TaskListDefinition` (
   `EpochDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `EpochPreDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `EmailList` varchar(2048) NOT NULL DEFAULT '',
+  `DurWait` bigint(20) NOT NULL DEFAULT '86400000000000',
   `Comment` varchar(2048) NOT NULL DEFAULT '',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
@@ -2480,3 +2516,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+-- Dump completed on 2018-06-01 21:13:22

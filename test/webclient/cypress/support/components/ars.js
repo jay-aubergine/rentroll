@@ -19,7 +19,7 @@ export let conf = {
     notVisibleButtonNamesInForm: ["close"],
     buttonNamesInDetailForm: ["save", "saveadd", "delete"],
     skipColumns: [],
-    skipFields: ["ApplyRcvAccts", "RAIDrqd", "PriorToRAStart", "PriorToRAStop"], //TODO(Akshay): Write UI test for checkboxes
-    primaryId: "ARID",
+    skipFields: [],
+    primaryId: "ARID"
     fixtureFile: "accountRules.json"
 };

@@ -1,5 +1,5 @@
-DIRS=setup newbiz workerasm mrr rrr rr1 rr rr_use_cases jm1 gsr notes ccc upd acctbal gap importers bizdelete testdb bizlogic ws websvc1 websvc2 websvc3 payorstmt roller tws receipts webclient
-# DIRS=setup newbiz workerasm mrr rrr rr1 rr rr_use_cases jm1 gsr notes ccc upd acctbal gap importers bizdelete testdb bizlogic ws websvc1 websvc2 websvc3 payorstmt roller tws receipts
+# DIRS=setup newbiz workerasm mrr rrr rr1 rr rr_use_cases jm1 gsr notes ccc upd acctbal gap importers bizdelete testdb bizlogic ws websvc1 websvc2 websvc3 payorstmt roller tws tws3 receipts webclient
+DIRS=setup newbiz workerasm mrr rrr rr1 rr rr_use_cases jm1 gsr notes ccc upd acctbal gap importers bizdelete testdb bizlogic ws websvc1 websvc2 websvc3 payorstmt roller tws tws3 receipts
 TESTREPORT="testreport.txt"
 
 db:
@@ -11,6 +11,8 @@ clean:
 	for dir in $(DIRS); do make -C $$dir clean;done
 	cd ./testdb;make clean
 	cd ./importers/onesite/okc;make clean
+	cd ./tws2;make clean
+	cd ./webclient;make clean
 	@echo "*** CLEAN completed in test ***"
 
 test: validate functest

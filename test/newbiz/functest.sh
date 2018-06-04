@@ -6,6 +6,7 @@ TESTSUMMARY="Load all csv files through loader and validate the database after l
 source ../share/base.sh
 RRCTX="-G ${BUD} -g 12/1/15,1/1/16"
 
+echo "CSVLOAD = ${CSVLOAD}"
 
 # Create a bunch of content
 ${CSVLOAD} -b nb.csv >>${LOGFILE} 2>&1
@@ -39,7 +40,7 @@ ${CSVLOAD} -y deposit.csv -S sources.csv ${RRCTX} >>${LOGFILE} 2>&1
 mysqlverify "a"  "-b nb.csv"           		"NewBusinesses"	            	"select BID,BUD,Name,DefaultRentCycle,DefaultProrationCycle,DefaultGSRPC,LastModBy from Business;"
 mysqlverify "b"  "-l strlists.csv"     		"StringLists"	            	"select SLID,BID,Name,LastModBy from StringList;"
 mysqlverify "c"  " "	               		"SLString"	            		"select SLSID,SLID,Value,LastModBy from SLString;"
-mysqlverify "d"  "-R rt.csv"           		"RentableTypes"	            	"select RTID,BID,Style,Name,RentCycle,Proration,GSRPC,ManageToBudget,LastModBy from RentableTypes;"
+mysqlverify "d"  "-R rt.csv"           		"RentableTypes"	            	"select RTID,BID,Style,Name,RentCycle,Proration,GSRPC,FLAGS,LastModBy from RentableTypes;"
 mysqlverify "e"  " "                   		"RentableMarketRates"	    	"select * from RentableMarketRate;"
 mysqlverify "f"  "-m depmeth.csv"      		"Deposit Methods"           	"select * from DepositMethod;"
 mysqlverify "g"  "-S sources.csv"      		"Sources"	            		"select SourceSLSID,BID,Name,Industry from DemandSource;"

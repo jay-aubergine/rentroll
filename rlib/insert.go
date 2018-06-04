@@ -238,7 +238,7 @@ func InsertBusiness(ctx context.Context, a *Business) (int64, error) {
 	// transaction... context
 
 	// TODO(Sudip): keep mind this FLAGS insertion in fields, this might be removed in the future
-	fields := []interface{}{a.Designation, a.Name, a.DefaultRentCycle, a.DefaultProrationCycle, a.DefaultGSRPC, a.FLAGS, a.CreateBy, a.LastModBy}
+	fields := []interface{}{a.Designation, a.Name, a.DefaultRentCycle, a.DefaultProrationCycle, a.DefaultGSRPC, a.ClosePeriodTLID, a.FLAGS, a.CreateBy, a.LastModBy}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertBusiness)
 		defer stmt.Close()
@@ -260,6 +260,45 @@ func InsertBusiness(ctx context.Context, a *Business) (int64, error) {
 
 		// build business list and cache again
 		RRdb.BUDlist, RRdb.BizCache = BuildBusinessDesignationMap()
+	}
+	return rid, err
+}
+
+// InsertClosePeriod writes a new User record to the database
+func InsertClosePeriod(ctx context.Context, a *ClosePeriod) (int64, error) {
+	var rid = int64(0)
+	var err error
+	var res sql.Result
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		sess, ok := SessionFromContext(ctx)
+		if !ok {
+			return rid, ErrSessionRequired
+		}
+
+		// user from session, CreateBy, LastModBy
+		a.CreateBy = sess.UID
+		a.LastModBy = a.CreateBy
+	}
+
+	fields := []interface{}{a.BID, a.TLID, a.Dt, a.CreateBy, a.LastModBy}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.InsertClosePeriod)
+		defer stmt.Close()
+		res, err = stmt.Exec(fields...)
+	} else {
+		res, err = RRdb.Prepstmt.InsertClosePeriod.Exec(fields...)
+	}
+
+	// After getting result...
+	if nil == err {
+		x, err := res.LastInsertId()
+		if err == nil {
+			a.CPID = int64(x)
+		}
+	} else {
+		err = insertError(err, "ClosePeriod", *a)
 	}
 	return rid, err
 }
@@ -1874,7 +1913,7 @@ func InsertRentableType(ctx context.Context, a *RentableType) (int64, error) {
 	}
 
 	// transaction... context
-	fields := []interface{}{a.BID, a.Style, a.Name, a.RentCycle, a.Proration, a.GSRPC, a.ManageToBudget, a.CreateBy, a.LastModBy}
+	fields := []interface{}{a.BID, a.Style, a.Name, a.RentCycle, a.Proration, a.GSRPC, a.ARID, a.FLAGS, a.CreateBy, a.LastModBy}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertRentableType)
 		defer stmt.Close()
@@ -2282,7 +2321,7 @@ func InsertTaskList(ctx context.Context, a *TaskList) error {
 		return err
 	}
 	a.LastModBy = a.CreateBy
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.DtDue, a.DtPreDue, a.DtDone, a.DtPreDone, a.FLAGS, a.DoneUID, a.PreDoneUID, a.Comment, a.CreateBy, a.LastModBy}
+	fields := []interface{}{a.BID, a.PTLID, a.TLDID, a.Name, a.Cycle, a.DtDue, a.DtPreDue, a.DtDone, a.DtPreDone, a.FLAGS, a.DoneUID, a.PreDoneUID, a.EmailList, a.DtLastNotify, a.DurWait, a.Comment, a.CreateBy, a.LastModBy}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertTaskList)
 		defer stmt.Close()
@@ -2343,7 +2382,7 @@ func InsertTaskListDefinition(ctx context.Context, a *TaskListDefinition) error 
 	}
 	a.LastModBy = a.CreateBy
 
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.Comment, a.LastModBy, a.TLDID}
+	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.EmailList, a.DurWait, a.Comment, a.LastModBy, a.TLDID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.InsertTaskListDefinition)
 		defer stmt.Close()
@@ -2600,8 +2639,8 @@ func InsertVehicle(ctx context.Context, a *Vehicle) (int64, error) {
 	return rid, err
 }
 
-// InsertFlowPart inserts the flow part with data provided in "a".
-func InsertFlowPart(ctx context.Context, a *FlowPart) (int64, error) {
+// InsertFlow inserts the flow with data provided in "a".
+func InsertFlow(ctx context.Context, a *Flow) (int64, error) {
 	var (
 		rid = int64(0)
 		err error
@@ -2629,13 +2668,13 @@ func InsertFlowPart(ctx context.Context, a *FlowPart) (int64, error) {
 
 	// as a.Data is type of json.RawMessage - convert it to byte stream so that it can be inserted
 	// in mysql `json` type column
-	fields := []interface{}{a.BID, a.Flow, a.FlowID, a.PartType, []byte(a.Data), a.CreateBy, a.LastModBy}
+	fields := []interface{}{a.BID, a.FlowType, []byte(a.Data), a.CreateBy, a.LastModBy}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
-		stmt := tx.Stmt(RRdb.Prepstmt.InsertFlowPart)
+		stmt := tx.Stmt(RRdb.Prepstmt.InsertFlow)
 		defer stmt.Close()
 		res, err = stmt.Exec(fields...)
 	} else {
-		res, err = RRdb.Prepstmt.InsertFlowPart.Exec(fields...)
+		res, err = RRdb.Prepstmt.InsertFlow.Exec(fields...)
 	}
 
 	// After getting result...
@@ -2643,10 +2682,10 @@ func InsertFlowPart(ctx context.Context, a *FlowPart) (int64, error) {
 		x, err := res.LastInsertId()
 		if err == nil {
 			rid = int64(x)
-			a.FlowPartID = rid
+			a.FlowID = rid
 		}
 	} else {
-		err = insertError(err, "FlowPart", *a)
+		err = insertError(err, "Flow", *a)
 	}
 	return rid, err
 }

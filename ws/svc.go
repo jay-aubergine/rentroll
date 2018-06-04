@@ -155,9 +155,11 @@ var Svcs = []ServiceHandler{
 	{Cmd: "allocfunds", Handler: SvcSearchHandlerAllocFunds, NeedBiz: true, NeedSession: true},
 	{Cmd: "ar", Handler: SvcFormHandlerAR, NeedBiz: true, NeedSession: true},
 	{Cmd: "ars", Handler: SvcSearchHandlerARs, NeedBiz: true, NeedSession: true},
+	{Cmd: "arslist", Handler: SvcARsList, NeedBiz: true, NeedSession: true},
 	{Cmd: "asm", Handler: SvcFormHandlerAssessment, NeedBiz: true, NeedSession: true},
 	{Cmd: "asms", Handler: SvcSearchHandlerAssessments, NeedBiz: true, NeedSession: true},
 	{Cmd: "authn", Handler: SvcAuthenticate, NeedBiz: false, NeedSession: false},
+	{Cmd: "closeperiod", Handler: SvcHandlerClosePeriod, NeedBiz: true, NeedSession: true},
 	{Cmd: "dep", Handler: SvcHandlerDepository, NeedBiz: true, NeedSession: true},
 	{Cmd: "depmeth", Handler: SvcHandlerDepositMethod, NeedBiz: true, NeedSession: true},
 	{Cmd: "deposit", Handler: SvcHandlerDeposit, NeedBiz: true, NeedSession: true},
@@ -165,7 +167,8 @@ var Svcs = []ServiceHandler{
 	{Cmd: "discon", Handler: SvcDisableConsole, NeedBiz: false, NeedSession: true},
 	{Cmd: "encon", Handler: SvcEnableConsole, NeedBiz: false, NeedSession: true},
 	{Cmd: "expense", Handler: SvcHandlerExpense, NeedBiz: false, NeedSession: true},
-	{Cmd: "ledgers", Handler: getLedgerGrid, NeedBiz: true, NeedSession: true},
+	{Cmd: "ledger", Handler: SvcLedgerHandler, NeedBiz: true, NeedSession: true},
+	{Cmd: "ledgers", Handler: SvcLedgerHandler, NeedBiz: true, NeedSession: true},
 	{Cmd: "logoff", Handler: SvcLogoff, NeedBiz: false, NeedSession: true},
 	{Cmd: "parentaccounts", Handler: SvcParentAccountsList, NeedBiz: true, NeedSession: true},
 	{Cmd: "payorfund", Handler: SvcHandlerTotalUnallocFund, NeedBiz: true, NeedSession: true},
@@ -215,7 +218,7 @@ var Svcs = []ServiceHandler{
 	{Cmd: "userprofile", Handler: SvcUserProfile, NeedBiz: false, NeedSession: true},
 	{Cmd: "version", Handler: SvcHandlerVersion, NeedBiz: false, NeedSession: false},
 	{Cmd: "flow", Handler: SvcHandlerFlow, NeedBiz: true, NeedSession: true},
-	{Cmd: "flowpart", Handler: SvcHandlerFlowPart, NeedBiz: true, NeedSession: true},
+	{Cmd: "raflow-rentable-fees", Handler: SvcGetRentableFeesData, NeedBiz: true, NeedSession: true},
 }
 
 // SvcCtx contains information global to the Svc handlers
@@ -231,18 +234,24 @@ func SvcInit(noauth bool) {
 
 func findSession(w http.ResponseWriter, r **http.Request, d *ServiceData) error {
 	var err error
+	// rlib.Console("A\n")
 	if !SvcCtx.NoAuth {
+		// rlib.Console("B\n")
 		rlib.Console("calling GetSession\n")
 		d.sess, err = rlib.GetSession((*r).Context(), w, (*r))
 		if err != nil {
+			// rlib.Console("C\n")
 			rlib.Console("*** GetSession returned error: %s\n", err.Error())
 			// SvcErrorReturn(w, err, funcname)
 			return err
 		}
+		// rlib.Console("D\n")
 		if d.sess != nil {
+			rlib.Console("E, d.sess.UID = %d, d.sess.Username = %s\n", d.sess.UID, d.sess.Username)
 			if d.sess.UID == 0 || len(d.sess.Username) == 0 {
 				return fmt.Errorf("SessionToken expired, please log in")
 			}
+			// rlib.Console("F\n")
 			rlib.Console("*** GetSession found sess: %s\n", d.sess.Token)
 			rlib.Console("Session.Username: %s\n", d.sess.Username)
 
@@ -254,19 +263,24 @@ func findSession(w http.ResponseWriter, r **http.Request, d *ServiceData) error 
 			if err != nil {
 				return err
 			}
+			// rlib.Console("G\n")
 			if c.Status != "success" {
+				// rlib.Console("H\n")
 				rlib.SessionDelete(d.sess, w, *r)
 				d.sess = nil
 				e := fmt.Errorf("No session, please log in")
 				return e
 			}
+			// rlib.Console("I\n")
 
 			d.sess.Refresh(w, (*r)) // they actively tried to use the session, extend timeout
 		}
+		// rlib.Console("J\n")
 		// get session in the request context
 		ctx := rlib.SetSessionContextKey((*r).Context(), d.sess)
 		(*r) = (*r).WithContext(ctx)
 	}
+	// rlib.Console("K\n")
 	return nil
 }
 

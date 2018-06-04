@@ -199,7 +199,7 @@ func GetARMap(ctx context.Context, bid int64) (map[int64]AR, error) {
 }
 
 // GetAllARs reads all AccountRules for the supplied BID
-func GetAllARs(ctx context.Context, id int64) ([]AR, error) {
+func GetAllARs(ctx context.Context, BID int64) ([]AR, error) {
 
 	var (
 		err error
@@ -215,7 +215,7 @@ func GetAllARs(ctx context.Context, id int64) ([]AR, error) {
 	}
 
 	var rows *sql.Rows
-	fields := []interface{}{id}
+	fields := []interface{}{BID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.GetAllARs)
 		defer stmt.Close()
@@ -231,7 +231,7 @@ func GetAllARs(ctx context.Context, id int64) ([]AR, error) {
 }
 
 // GetARsByType reads all AccountRules for the supplied BID of type artype
-func GetARsByType(ctx context.Context, id int64, artype int) ([]AR, error) {
+func GetARsByType(ctx context.Context, bid int64, artype int) ([]AR, error) {
 
 	var (
 		err error
@@ -247,13 +247,45 @@ func GetARsByType(ctx context.Context, id int64, artype int) ([]AR, error) {
 	}
 
 	var rows *sql.Rows
-	fields := []interface{}{id, artype}
+	fields := []interface{}{bid, artype}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.GetARsByType)
 		defer stmt.Close()
 		rows, err = stmt.Query(fields...)
 	} else {
 		rows, err = RRdb.Prepstmt.GetARsByType.Query(fields...)
+	}
+
+	if err != nil {
+		return t, err
+	}
+	return getARsForRows(ctx, rows)
+}
+
+// GetARsByFLAGS reads all AccountRules for the supplied BID with FLAGS
+func GetARsByFLAGS(ctx context.Context, bid int64, FLAGS uint64) ([]AR, error) {
+
+	var (
+		err error
+		t   []AR
+	)
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		_, ok := SessionFromContext(ctx)
+		if !ok {
+			return t, ErrSessionRequired
+		}
+	}
+
+	var rows *sql.Rows
+	fields := []interface{}{bid, FLAGS, FLAGS}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetARsByFLAGS)
+		defer stmt.Close()
+		rows, err = stmt.Query(fields...)
+	} else {
+		rows, err = RRdb.Prepstmt.GetARsByFLAGS.Query(fields...)
 	}
 
 	if err != nil {
@@ -887,6 +919,47 @@ func GetXBusiness(ctx context.Context, bid int64, xbiz *XBusiness) error {
 	}
 
 	return GetXBiz(bid, xbiz)
+}
+
+//=======================================================
+//  CLOSE PERIOD
+//=======================================================
+
+// GetClosePeriod reads specific ClosePeriod record
+//-----------------------------------------------------------------------------
+func GetClosePeriod(ctx context.Context, id int64) (ClosePeriod, error) {
+	var a ClosePeriod
+	var row *sql.Row
+
+	fields := []interface{}{id}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetClosePeriod)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.GetClosePeriod.QueryRow(fields...)
+	}
+	return a, ReadClosePeriod(row, &a)
+}
+
+// GetLastClosePeriod reads the last period closed
+//
+// INPUTS
+//  id  = BID
+//-----------------------------------------------------------------------------
+func GetLastClosePeriod(ctx context.Context, id int64) (ClosePeriod, error) {
+	var a ClosePeriod
+	var row *sql.Row
+
+	fields := []interface{}{id}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetLastClosePeriod)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.GetLastClosePeriod.QueryRow(fields...)
+	}
+	return a, ReadClosePeriod(row, &a)
 }
 
 //=======================================================
@@ -4755,6 +4828,7 @@ func GetRentableTypeDown(ctx context.Context, bid int64, s string, limit int) ([
 	for rows.Next() {
 		var t RentableTypeDown
 		err = ReadRentableTypeDown(rows, &t)
+		t.Recid = t.RID
 		if err != nil {
 			return m, err
 		}
@@ -6587,14 +6661,6 @@ func GetSubARs(ctx context.Context, id int64) ([]SubAR, error) {
 	return m, rows.Err()
 }
 
-func authCheck(ctx context.Context) bool {
-	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
-		_, ok := SessionFromContext(ctx)
-		return !ok
-	}
-	return false
-}
-
 //============================================================
 //  TASKS
 //  TaskListDefintion, TaskListDescriptor, TaskList, Task
@@ -6603,7 +6669,7 @@ func authCheck(ctx context.Context) bool {
 // GetTask returns the task with the supplied id
 func GetTask(ctx context.Context, id int64) (Task, error) {
 	var a Task
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return a, ErrSessionRequired
 	}
 	var row *sql.Row
@@ -6618,11 +6684,30 @@ func GetTask(ctx context.Context, id int64) (Task, error) {
 	return a, ReadTask(row, &a)
 }
 
+// GetLatestCompletedTaskList returns the latest completed task list
+// with the parent or epoch equal to id
+func GetLatestCompletedTaskList(ctx context.Context, id int64) (TaskList, error) {
+	var a TaskList
+	if sessionCheck(ctx) {
+		return a, ErrSessionRequired
+	}
+	var row *sql.Row
+	fields := []interface{}{id, id}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetLatestCompletedTaskList)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.GetLatestCompletedTaskList.QueryRow(fields...)
+	}
+	return a, ReadTaskList(row, &a)
+}
+
 // GetTasks returns a slice of tasks with the supplied id
 func GetTasks(ctx context.Context, id int64) ([]Task, error) {
 	var m []Task
 	var err error
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return m, ErrSessionRequired
 	}
 	var rows *sql.Rows
@@ -6651,7 +6736,7 @@ func GetTasks(ctx context.Context, id int64) ([]Task, error) {
 // GetTaskList returns the tasklist with the supplied id
 func GetTaskList(ctx context.Context, id int64) (TaskList, error) {
 	var a TaskList
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return a, ErrSessionRequired
 	}
 	var row *sql.Row
@@ -6666,10 +6751,39 @@ func GetTaskList(ctx context.Context, id int64) (TaskList, error) {
 	return a, ReadTaskList(row, &a)
 }
 
+// GetTaskListInstanceInRange returns a tasklist instance where
+// the PTLID matches the supplied ptlid and the due date falls in the
+// supplied date range.
+//
+// INPUTS
+//     ctx       - for transactions
+//     id        = Parent TLID - the head of the task list instances
+//     dt1 - dt2 = time period of instance for the due date
+//
+// RETURNS
+//     the tasklist if found, or an empty task list if not found
+//-----------------------------------------------------------------------------
+func GetTaskListInstanceInRange(ctx context.Context, id int64, dt1, dt2 *time.Time) (TaskList, error) {
+	var a TaskList
+	if sessionCheck(ctx) {
+		return a, ErrSessionRequired
+	}
+	var row *sql.Row
+	fields := []interface{}{id, id, dt1, dt2}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetTaskListInstanceInRange)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.GetTaskListInstanceInRange.QueryRow(fields...)
+	}
+	return a, ReadTaskList(row, &a)
+}
+
 // GetTaskDescriptor returns the tasklist with the supplied id
 func GetTaskDescriptor(ctx context.Context, id int64) (TaskDescriptor, error) {
 	var a TaskDescriptor
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return a, ErrSessionRequired
 	}
 	var row *sql.Row
@@ -6690,7 +6804,7 @@ func GetTaskDescriptor(ctx context.Context, id int64) (TaskDescriptor, error) {
 func GetTaskListDescriptors(ctx context.Context, id int64) ([]TaskDescriptor, error) {
 	var err error
 	var m []TaskDescriptor
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return m, ErrSessionRequired
 	}
 
@@ -6734,7 +6848,7 @@ func GetAllTaskListDefinitions(ctx context.Context, id int64) ([]TaskListDefinit
 	var m []TaskListDefinition
 	var err error
 
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return m, ErrSessionRequired
 	}
 
@@ -6768,7 +6882,7 @@ func GetAllTaskListDefinitions(ctx context.Context, id int64) ([]TaskListDefinit
 // GetTaskListDefinition returns the tasklist with the supplied id
 func GetTaskListDefinition(ctx context.Context, id int64) (TaskListDefinition, error) {
 	var a TaskListDefinition
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return a, ErrSessionRequired
 	}
 	var row *sql.Row
@@ -6786,7 +6900,7 @@ func GetTaskListDefinition(ctx context.Context, id int64) (TaskListDefinition, e
 // GetTaskListDefinitionByName returns the tasklist with the supplied namd in the BID
 func GetTaskListDefinitionByName(ctx context.Context, bid int64, name string) (TaskListDefinition, error) {
 	var a TaskListDefinition
-	if authCheck(ctx) {
+	if sessionCheck(ctx) {
 		return a, ErrSessionRequired
 	}
 	var row *sql.Row
@@ -6799,6 +6913,39 @@ func GetTaskListDefinitionByName(ctx context.Context, bid int64, name string) (T
 		row = RRdb.Prepstmt.GetTaskListDefinitionByName.QueryRow(fields...)
 	}
 	return a, ReadTaskListDefinition(row, &a)
+}
+
+// CheckForTLDInstances returns true if there are any instances of the
+// supplied TLDID or false if there are none.
+//
+// INPUTS:
+//    id = the TLDID to search for
+//
+// RETURNS
+//    count: false if no instances found, true otherwise
+//    error: any error encountered.
+//-----------------------------------------------------------------------------
+func CheckForTLDInstances(ctx context.Context, id int64) (bool, error) {
+	var count int
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		_, ok := SessionFromContext(ctx)
+		if !ok {
+			return false, ErrSessionRequired
+		}
+	}
+
+	var row *sql.Row
+	fields := []interface{}{id}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.CheckForTLDInstances)
+		defer stmt.Close()
+		row = stmt.QueryRow(fields...)
+	} else {
+		row = RRdb.Prepstmt.CheckForTLDInstances.QueryRow(fields...)
+	}
+	return (count > 0), row.Scan(&count)
 }
 
 //=======================================================
@@ -7483,12 +7630,12 @@ func GetCountBusinessRentalAgreements(ctx context.Context, bid int64) (int, erro
 	return count, row.Scan(&count)
 }
 
-// GetFlowPart reads a FlowPart structure based on the supplied flowPartId
-func GetFlowPart(ctx context.Context, id int64) (FlowPart, error) {
+// GetFlow reads a Flow structure based on the supplied flowId
+func GetFlow(ctx context.Context, flowID int64) (Flow, error) {
 
 	var (
 		// err error
-		a FlowPart
+		a Flow
 	)
 
 	// session... context
@@ -7500,52 +7647,23 @@ func GetFlowPart(ctx context.Context, id int64) (FlowPart, error) {
 	}
 
 	var row *sql.Row
-	fields := []interface{}{id}
+	fields := []interface{}{flowID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
-		stmt := tx.Stmt(RRdb.Prepstmt.GetFlowPart)
+		stmt := tx.Stmt(RRdb.Prepstmt.GetFlow)
 		defer stmt.Close()
 		row = stmt.QueryRow(fields...)
 	} else {
-		row = RRdb.Prepstmt.GetFlowPart.QueryRow(fields...)
+		row = RRdb.Prepstmt.GetFlow.QueryRow(fields...)
 	}
-	return a, ReadFlowPart(row, &a)
+	return a, ReadFlow(row, &a)
 }
 
-// GetFlowPartByPartType reads a FlowPart structure based on the supplied partType and flowID
-func GetFlowPartByPartType(ctx context.Context, flowID string, partType int) (FlowPart, error) {
-
-	var (
-		// err error
-		a FlowPart
-	)
-
-	// session... context
-	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
-		_, ok := SessionFromContext(ctx)
-		if !ok {
-			return a, ErrSessionRequired
-		}
-	}
-
-	var row *sql.Row
-	fields := []interface{}{flowID, partType}
-	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
-		stmt := tx.Stmt(RRdb.Prepstmt.GetFlowPartByPartType)
-		defer stmt.Close()
-		row = stmt.QueryRow(fields...)
-	} else {
-		row = RRdb.Prepstmt.GetFlowPartByPartType.QueryRow(fields...)
-	}
-	return a, ReadFlowPart(row, &a)
-}
-
-// getFlowPartsForRows uses the given rows argument, gets all the FlowPart records
-// and returns them in a slice of FlorPart struct
-func getFlowPartsForRows(ctx context.Context, rows *sql.Rows) ([]FlowPart, error) {
+// GetFlowsByFlowType reads all flowID for the current user
+func GetFlowsByFlowType(ctx context.Context, flowType string) ([]Flow, error) {
 
 	var (
 		err error
-		t   []FlowPart
+		t   []Flow
 	)
 
 	// session... context
@@ -7555,26 +7673,39 @@ func getFlowPartsForRows(ctx context.Context, rows *sql.Rows) ([]FlowPart, error
 			return t, ErrSessionRequired
 		}
 	}
+
+	var rows *sql.Rows
+	fields := []interface{}{flowType}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.GetFlowsByFlowType)
+		defer stmt.Close()
+		rows, err = stmt.Query(fields...)
+	} else {
+		rows, err = RRdb.Prepstmt.GetFlowsByFlowType.Query(fields...)
+	}
+
+	if err != nil {
+		return t, err
+	}
 	defer rows.Close()
 
 	for i := 0; rows.Next(); i++ {
-		var a FlowPart
-		err = ReadFlowParts(rows, &a)
+		var f Flow
+		err = ReadFlows(rows, &f)
 		if err != nil {
 			return t, err
 		}
-		t = append(t, a)
+		t = append(t, f)
 	}
-
 	return t, rows.Err()
 }
 
-// GetFlowIDsByUser returns all FlowIDs for the current user
-func GetFlowIDsByUser(ctx context.Context, flow string) ([]string, error) {
+// GetFlowIDsByUser reads all flowID for the current user
+func GetFlowIDsByUser(ctx context.Context) ([]int64, error) {
 
 	var (
 		err error
-		t   []string
+		t   []int64
 		UID = int64(0)
 	)
 
@@ -7588,7 +7719,7 @@ func GetFlowIDsByUser(ctx context.Context, flow string) ([]string, error) {
 	}
 
 	var rows *sql.Rows
-	fields := []interface{}{flow, UID}
+	fields := []interface{}{UID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.GetFlowIDsByUser)
 		defer stmt.Close()
@@ -7603,77 +7734,12 @@ func GetFlowIDsByUser(ctx context.Context, flow string) ([]string, error) {
 	defer rows.Close()
 
 	for i := 0; rows.Next(); i++ {
-		var id string
+		var id int64
 		err = rows.Scan(&id)
 		if err != nil {
 			return t, err
 		}
 		t = append(t, id)
 	}
-
 	return t, rows.Err()
-}
-
-// GetFlowPartsByFlowID reads all FlowPart for the given flow ID
-func GetFlowPartsByFlowID(ctx context.Context, flowID string) ([]FlowPart, error) {
-
-	var (
-		err error
-		t   []FlowPart
-	)
-
-	// session... context
-	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
-		_, ok := SessionFromContext(ctx)
-		if !ok {
-			return t, ErrSessionRequired
-		}
-	}
-
-	var rows *sql.Rows
-	fields := []interface{}{flowID}
-	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
-		stmt := tx.Stmt(RRdb.Prepstmt.GetFlowPartsByFlowID)
-		defer stmt.Close()
-		rows, err = stmt.Query(fields...)
-	} else {
-		rows, err = RRdb.Prepstmt.GetFlowPartsByFlowID.Query(fields...)
-	}
-
-	if err != nil {
-		return t, err
-	}
-	return getFlowPartsForRows(ctx, rows)
-}
-
-// GetFlowPartsByFlow reads all FlowPart for the given flow and BID
-func GetFlowPartsByFlow(ctx context.Context, flow string, BID int64) ([]FlowPart, error) {
-
-	var (
-		err error
-		t   []FlowPart
-	)
-
-	// session... context
-	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
-		_, ok := SessionFromContext(ctx)
-		if !ok {
-			return t, ErrSessionRequired
-		}
-	}
-
-	var rows *sql.Rows
-	fields := []interface{}{flow, BID}
-	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
-		stmt := tx.Stmt(RRdb.Prepstmt.GetFlowPartsByFlow)
-		defer stmt.Close()
-		rows, err = stmt.Query(fields...)
-	} else {
-		rows, err = RRdb.Prepstmt.GetFlowPartsByFlow.Query(fields...)
-	}
-
-	if err != nil {
-		return t, err
-	}
-	return getFlowPartsForRows(ctx, rows)
 }

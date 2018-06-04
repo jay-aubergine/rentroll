@@ -1,11 +1,12 @@
 "use strict";
 /*global
     w2ui, $, app, console,setToTLDForm, w2alert,
-    form_dirty_alert, addDateNavToToolbar, w2utils, w2popup,
+    form_dirty_alert, addDateNavToToolbar, w2utils, 
     openTaskDescForm, ensureSession, dtFormatISOToW2ui,
     dtFormatISOToW2ui, localtimeToUTC, setDefaultFormFieldAsPreviousRecord,
     getTLDInitRecord, getCurrentBID, getTDInitRecord, saveTaskListDefinition,
-    closeTaskDescForm,setTaskDescButtonsState,
+    closeTaskDescForm, setTaskDescButtonsState, newDateKeepOldTime,
+    w2uiDateTimeControlString,
 */
 
 // Temporary storage for when a date is toggled off
@@ -13,6 +14,7 @@ var TaskDescData = {
     sEpochDue: '',
     sEpochPreDue: '',
 };
+
 var TLData = {
     sEpoch: '',
     sEpochDue: '',
@@ -23,6 +25,7 @@ var TLD = {
     FormWidth: 450,
     TaskDescWidth: 400,
     formBtnsDisabled: false,
+    TIME0: '1/1/1970',
 };
 
 window.getTLDInitRecord = function (BID, previousFormRecord){
@@ -49,6 +52,7 @@ window.getTLDInitRecord = function (BID, previousFormRecord){
         Epoch: dtFormatISOToW2ui(y1.toString()),
         EpochDue: dtFormatISOToW2ui(epochDue.toString()),
         EpochPreDue: dtFormatISOToW2ui(epochPreDue.toString()),
+        DurWait: 86400000000000,
         FLAGS: 0,
         Comment: '',
         CreateTS: y.toString(),
@@ -228,28 +232,34 @@ window.buildTaskListDefElements = function () {
             { field: 'EpochDue',       type: 'datetime', required: false },
             { field: 'EpochPreDue',    type: 'datetime', required: false },
             { field: 'FLAGS',          type: 'int',      required: false },
+            { field: 'EmailList',      type: 'text',     required: false },
             { field: 'Comment',        type: 'text',     required: false },
+            { field: 'DurWait',        type: 'int',      required: false },
             { field: 'CreateTS',       type: 'date',     required: false },
             { field: 'CreateBy',       type: 'int',      required: false },
+            { field: 'TZOffset',       type: 'int',      required: false },
             { field: 'LastModTime',    type: 'date',     required: false },
             { field: 'LastModBy',      type: 'int',      required: false },
         ],
         onLoad: function(event) {
             event.onComplete = function(event) {
-                var r = w2ui.tldsInfoForm.record;
+                var f = w2ui.tldsInfoForm;
+                var r = f.record;
                 if (typeof r.EpochPreDue === "undefined") {
                     return;
                 }
+                
+                // translate dates into a format that w2ui understands
                 r.EpochPreDue = dtFormatISOToW2ui(r.EpochPreDue);
                 r.EpochDue    = dtFormatISOToW2ui(r.EpochDue);
                 r.Epoch       = dtFormatISOToW2ui(r.Epoch);
+
+                // now enable/disable as needed
+                $(f.box).find("input[name=EpochDue]").prop( "disabled", !r.ChkEpochDue );
+                $(f.box).find("input[name=EpochPreDue]").prop( "disabled", !r.ChkEpochPreDue );
+                $(f.box).find("input[name=Epoch]").prop( "disabled", r.Cycle < 4);  // enable if recur is Daily, Weekly, Monthlhy, quarterly or yearly
             };
         },
-        // onRefresh: function(event) {
-        //     // var f = this;
-        //     event.onComplete = function(event) {
-        //     };
-        // },
         onChange: function(event) {
             event.onComplete = function() {
                 var f = this;
@@ -281,16 +291,41 @@ window.buildTaskListDefElements = function () {
                     f.refresh();
                     break;
                 case "Cycle":
-                    b = r.Cycle.id < 5; // 5 is weekly
+                    b = r.Cycle.id < 4; // 4 is daily
                     $(f.box).find("input[name=Epoch]").prop( "disabled", b);
-                    if (b && event.value_previous.id >= 5) {  // change from need date to don't need date
+                    if (b && event.value_previous.id >= 4) {  // change from need date to don't need date
                         TLData.sEpoch = r.Epoch;
                         r.Epoch = '';
-                    } else if (!b && event.value_previous.id < 5 ) { // change from don't need date to need date
+                    } else if (!b && event.value_previous.id < 4 ) { // change from don't need date to need date
                         if (r.Epoch === "" && TLData.sEpoch.length > 1) {
                             r.Epoch = TLData.sEpoch;
                         }
                     }
+                    f.refresh();
+                    break;
+                case "Epoch":
+                case "EpochDue":
+                case "EpochPreDue":
+                    // all dates must be in sync if cycle > 0 and < 4
+                    if (0 < r.Cycle.id && r.Cycle.id <= 4) {
+                        if (event.value_new === "") {
+                            r[event.target] = event.value_previous;
+                            event.isCancelled = true;
+                            f.refresh();
+                            return;
+                        }
+                        var dt = new Date(r[event.target]);
+                        var da = dt.getDate();
+                        var mn = dt.getMonth();
+                        var yr = dt.getFullYear();
+                        r.Epoch       = w2uiDateTimeControlString(newDateKeepOldTime(r.Epoch,yr,mn,da));
+                        r.EpochDue    = w2uiDateTimeControlString(newDateKeepOldTime(r.EpochDue,yr,mn,da));
+                        r.EpochPreDue = w2uiDateTimeControlString(newDateKeepOldTime(r.EpochPreDue,yr,mn,da));
+                    }
+                    // we must always keep epoch at localtime 00:00
+                    var ddt = new Date(r.Epoch);
+                    var dd1 = new Date(ddt.getFullYear(), ddt.getMonth(), ddt.getDate(), 0, 0 );
+                    r.Epoch = w2uiDateTimeControlString(dd1);
                     f.refresh();
                     break;
                 }
@@ -328,8 +363,8 @@ window.buildTaskListDefElements = function () {
             { field: 'TDID',        caption: 'TDID',        size: '35px',  sotrable: true, hidden: true},
             { field: 'BID',         caption: 'BID',         size: '35px',  sotrable: true, hidden: true},
             { field: 'TLDID',       caption: 'TLDID',       size: '35px',  sotrable: true, hidden: true},
-            { field: 'Name',        caption: 'Name',        size: '120px', sotrable: true, hidden: false},
-            { field: 'Worker',      caption: 'Worker',      size: '75px',  sotrable: true, hidden: false},
+            { field: 'TDName',      caption: 'Name',        size: '360px', sotrable: true, hidden: false},
+            { field: 'Worker',      caption: 'Worker',      size: '95px',  sotrable: true, hidden: false},
             { field: 'EpochPreDue', caption: 'Pre Due',     size: '130px', sotrable: true, hidden: false,
                 render: function (rec, idx, col) {if (typeof rec === "undefined") {return ''; } return dtFormatISOToW2ui(rec.EpochPreDue); }
             },
@@ -402,7 +437,7 @@ window.buildTaskListDefElements = function () {
             { field: 'TDID',           type: 'int',         required: false },
             { field: 'BID',            type: 'int',         required: false },
             { field: 'TLDID',          type: 'int',         required: false },
-            { field: 'Name',           type: 'text',        required: true  },
+            { field: 'TDName',         type: 'text',        required: true  },
             { field: 'Worker',         type: 'text',        required: false },
             { field: 'lstWorker',      type: 'list',        required: false, options: {items: app.workers}, },
             { field: 'EpochDue',       type: 'datetime',    required: false },
@@ -412,11 +447,12 @@ window.buildTaskListDefElements = function () {
             { field: 'FLAGS',          type: 'text',        required: false },
             { field: 'DoneUID',        type: 'int',         required: false },
             { field: 'PreDoneUID',     type: 'int',         required: false },
-            { field: 'Comment',        type: 'text',        required: false },
+            { field: 'TDComment',      type: 'text',        required: false },
             { field: 'LastModTime',    type: 'date',        required: false },
-            { field: 'LastModBy',      type: 'date',        required: false },
+            { field: 'LastModBy',      type: 'int',         required: false },
             { field: 'CreateTS',       type: 'date',        required: false },
-            { field: 'CreateBy',       type: 'date',        required: false },
+            { field: 'CreateBy',       type: 'int',         required: false },
+            { field: 'TZOffset',       type: 'int',         required: false },
         ],
         actions: {
             save: function(target, data){
@@ -444,6 +480,13 @@ window.buildTaskListDefElements = function () {
                 //------------------------------------------------
                 r.EpochDue = localtimeToUTC(r.EpochDue);
                 r.EpochPreDue = localtimeToUTC(r.EpochPreDue);
+                if (r.EpochDue.length === 0) {
+                    r.EpochDue = TLD.TIME0;
+                }
+                if (r.EpochPreDue.length === 0) {
+                    r.EpochPreDue = TLD.TIME0;
+                }
+                r.TZOffset = app.TZOffset;
 
                 var d = {cmd: "save", record: r};
                 var dat=JSON.stringify(d);
@@ -491,12 +534,15 @@ window.buildTaskListDefElements = function () {
         },
        onLoad: function(event) {
             event.onComplete = function(event) {
-                var r = w2ui.taskDescForm.record;
+                var f = w2ui.taskDescForm;
+                var r = f.record;
                 if (typeof r.EpochPreDue === "undefined") {
                     return;
                 }
                 r.EpochPreDue = dtFormatISOToW2ui(r.EpochPreDue);
                 r.EpochDue    = dtFormatISOToW2ui(r.EpochDue);
+                $(f.box).find("input[name=EpochPreDue]").prop( "disabled", !r.ChkEpochPreDue );
+                $(f.box).find("input[name=EpochDue]").prop( "disabled", !r.ChkEpochDue );
             };
         },
        onRender: function(event) {
@@ -622,6 +668,15 @@ window.saveTaskListDefinition = function (hide, reloadTldsInfo) {
     tmp.Epoch       = localtimeToUTC(tmp.Epoch);
     tmp.EpochDue    = localtimeToUTC(tmp.EpochDue);
     tmp.EpochPreDue = localtimeToUTC(tmp.EpochPreDue);
+    if (tmp.Epoch.length === 0) {
+        tmp.Epoch = TLD.TIME0;
+    }
+    if (tmp.EpochDue.length === 0) {
+        tmp.EpochDue = TLD.TIME0;
+    }
+    if (tmp.EpochPreDue.length === 0) {
+        tmp.EpochPreDue = TLD.TIME0;
+    }
     if (tmp.Name.length === 0) {
         w2alert('Please name the task list definition, then try again.');
         return 1;

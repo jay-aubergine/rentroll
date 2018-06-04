@@ -3,6 +3,7 @@ TOP = .
 COUNTOL=${TOP}/tools/bashtools/countol.sh
 THISDIR=.
 DIST=tmp
+GITHOOKDIR=.git/hooks
 
 .PHONY:  test
 
@@ -27,7 +28,7 @@ jshint:
 	@${COUNTOL} "jshint --extract=always ./webclient/html/*.html ./webclient/html/test/*.html ./webclient/js/elems/*.js"
 	@rm -rf fail
 
-try: build db4
+try: build db4 githook
 
 db4:
 	cd tools/dbgen;./dbgen -f db4.json
@@ -85,9 +86,7 @@ package: rentroll
 	cp rentroll.1 ${DIST}/rentroll/man/man1
 	for dir in $(DIRS); do make -C $$dir package;done
 	cp rentroll ./${DIST}/rentroll/
-	# cp config.json ./${DIST}/rentroll/
 	cp ../gotable/pdfinstall.sh ${DIST}/rentroll/
-	# if [ -e js ]; then cp -r js ./${DIST}/rentroll/ ; fi
 	cp activate.sh update.sh ./${DIST}/rentroll/
 	rm -f ./rrnewdb ./rrbkup ./rrrestore
 	ln -s ${DIST}/rentroll/rrnewdb
@@ -123,4 +122,10 @@ pub: pubjs pubimages pubdb pubfa
 secure:
 	for dir in $(DIRS); do make -C $${dir} secure;done
 	@rm -f config.json confdev.json confprod.json
-	if [ -d ${DIST} ]; then find ${DIST}/ -name config.json -exec rm {} \;; fi
+	@if [ -d ${DIST} ]; then find ${DIST}/ -name config.json -exec rm {} \;; fi
+
+githook: addgspattern
+	./linkgithook.sh
+
+addgspattern:
+	./addgspattern.sh

@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.21, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.22, for Linux (x86_64)
 --
--- Host: 127.0.0.1    Database: rentroll
+-- Host: localhost    Database: rentroll
 -- ------------------------------------------------------
--- Server version	5.7.21
+-- Server version	5.7.22-0ubuntu0.16.04.1-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -203,6 +203,7 @@ CREATE TABLE `Business` (
   `DefaultRentCycle` smallint(6) NOT NULL DEFAULT '0',
   `DefaultProrationCycle` smallint(6) NOT NULL DEFAULT '0',
   `DefaultGSRPC` smallint(6) NOT NULL DEFAULT '0',
+  `ClosePeriodTLID` bigint(20) NOT NULL DEFAULT '0',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
@@ -218,7 +219,7 @@ CREATE TABLE `Business` (
 
 LOCK TABLES `Business` WRITE;
 /*!40000 ALTER TABLE `Business` DISABLE KEYS */;
-INSERT INTO `Business` VALUES (1,'REX','JGM First, LLC',6,4,4,1,'2018-02-28 08:57:03',0,'2017-11-10 23:24:22',0);
+INSERT INTO `Business` VALUES (1,'REX','JGM First, LLC',6,4,4,0,1,'2018-02-28 08:57:03',0,'2017-11-10 23:24:22',0);
 /*!40000 ALTER TABLE `Business` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -272,6 +273,35 @@ CREATE TABLE `BusinessPaymentTypes` (
 LOCK TABLES `BusinessPaymentTypes` WRITE;
 /*!40000 ALTER TABLE `BusinessPaymentTypes` DISABLE KEYS */;
 /*!40000 ALTER TABLE `BusinessPaymentTypes` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `ClosePeriod`
+--
+
+DROP TABLE IF EXISTS `ClosePeriod`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ClosePeriod` (
+  `CPID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `BID` bigint(20) NOT NULL DEFAULT '0',
+  `TLID` bigint(20) NOT NULL DEFAULT '0',
+  `Dt` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `LastModBy` bigint(20) NOT NULL DEFAULT '0',
+  `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `CreateBy` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`CPID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ClosePeriod`
+--
+
+LOCK TABLES `ClosePeriod` WRITE;
+/*!40000 ALTER TABLE `ClosePeriod` DISABLE KEYS */;
+/*!40000 ALTER TABLE `ClosePeriod` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -559,36 +589,32 @@ INSERT INTO `Expense` VALUES (1,0,1,2,3,15.0000,'2016-10-01 00:00:00','',6,0,'',
 UNLOCK TABLES;
 
 --
--- Table structure for table `FlowPart`
+-- Table structure for table `Flow`
 --
 
-DROP TABLE IF EXISTS `FlowPart`;
+DROP TABLE IF EXISTS `Flow`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `FlowPart` (
-  `FlowPartID` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `Flow` (
+  `FlowID` bigint(20) NOT NULL AUTO_INCREMENT,
   `BID` bigint(20) NOT NULL DEFAULT '0',
-  `Flow` varchar(50) NOT NULL DEFAULT '',
-  `FlowID` varchar(50) NOT NULL DEFAULT '',
-  `PartType` smallint(6) NOT NULL DEFAULT '0',
+  `FlowType` varchar(50) NOT NULL DEFAULT '',
   `Data` json DEFAULT NULL,
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `CreateBy` bigint(20) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`FlowPartID`),
-  UNIQUE KEY `FlowPartUnique` (`FlowPartID`,`BID`,`FlowID`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`FlowID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `FlowPart`
+-- Dumping data for table `Flow`
 --
 
-LOCK TABLES `FlowPart` WRITE;
-/*!40000 ALTER TABLE `FlowPart` DISABLE KEYS */;
-INSERT INTO `FlowPart` VALUES (1,1,'RA','72745f9d-d3',1,'{}','2018-04-03 17:51:10',211,'2018-04-03 17:51:04',211),(2,1,'RA','72745f9d-d3',2,'{}','2018-04-03 17:51:12',211,'2018-04-03 17:51:04',211),(3,1,'RA','72745f9d-d3',3,'[]','2018-04-03 17:51:14',211,'2018-04-03 17:51:04',211),(4,1,'RA','72745f9d-d3',4,'[]','2018-04-03 17:51:15',211,'2018-04-03 17:51:04',211),(5,1,'RA','72745f9d-d3',5,'{}','2018-04-03 17:52:19',211,'2018-04-03 17:51:04',211),(6,1,'RA','72745f9d-d3',6,'[]','2018-04-03 17:52:29',211,'2018-04-03 17:51:04',211),(7,1,'RA','72745f9d-d3',7,'[]','2018-04-03 17:52:40',211,'2018-04-03 17:51:04',211);
-/*!40000 ALTER TABLE `FlowPart` ENABLE KEYS */;
+LOCK TABLES `Flow` WRITE;
+/*!40000 ALTER TABLE `Flow` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Flow` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1754,8 +1780,8 @@ CREATE TABLE `RentableTypes` (
   `RentCycle` bigint(20) NOT NULL DEFAULT '0',
   `Proration` bigint(20) NOT NULL DEFAULT '0',
   `GSRPC` bigint(20) NOT NULL DEFAULT '0',
-  `ManageToBudget` smallint(6) NOT NULL DEFAULT '0',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `ARID` bigint(20) NOT NULL DEFAULT '0',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
   `CreateTS` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1770,7 +1796,7 @@ CREATE TABLE `RentableTypes` (
 
 LOCK TABLES `RentableTypes` WRITE;
 /*!40000 ALTER TABLE `RentableTypes` DISABLE KEYS */;
-INSERT INTO `RentableTypes` VALUES (1,1,'Rex1','309 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(2,1,'Rex2','309 1/2 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(3,1,'Rex3','311 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(4,1,'Rex4','311 1/2 Rexford',6,4,4,1,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0);
+INSERT INTO `RentableTypes` VALUES (1,1,'Rex1','309 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(2,1,'Rex2','309 1/2 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(3,1,'Rex3','311 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0),(4,1,'Rex4','311 1/2 Rexford',6,4,4,0,0,'2017-11-28 03:44:18',0,'2017-11-28 03:44:18',0);
 /*!40000 ALTER TABLE `RentableTypes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1945,6 +1971,7 @@ CREATE TABLE `RentalAgreementRentables` (
   `RAID` bigint(20) NOT NULL DEFAULT '0',
   `BID` bigint(20) NOT NULL DEFAULT '0',
   `RID` bigint(20) NOT NULL DEFAULT '0',
+  `PRID` bigint(20) NOT NULL DEFAULT '0',
   `CLID` bigint(20) NOT NULL DEFAULT '0',
   `ContractRent` decimal(19,4) NOT NULL DEFAULT '0.0000',
   `RARDtStart` date NOT NULL DEFAULT '1970-01-01',
@@ -1963,7 +1990,7 @@ CREATE TABLE `RentalAgreementRentables` (
 
 LOCK TABLES `RentalAgreementRentables` WRITE;
 /*!40000 ALTER TABLE `RentalAgreementRentables` DISABLE KEYS */;
-INSERT INTO `RentalAgreementRentables` VALUES (1,2,1,1,0,3750.0000,'2014-03-01','2018-02-01','2018-02-27 19:38:58',200,'2017-11-30 18:20:15',0),(2,3,1,2,0,4000.0000,'2016-10-01','2018-12-31','2018-02-27 21:16:18',200,'2017-11-30 18:32:13',0),(3,4,1,3,0,4150.0000,'2016-07-01','2018-07-01','2018-02-23 08:58:08',0,'2017-11-30 18:34:33',0);
+INSERT INTO `RentalAgreementRentables` VALUES (1,2,1,1,0,0,3750.0000,'2014-03-01','2018-02-01','2018-02-27 19:38:58',200,'2017-11-30 18:20:15',0),(2,3,1,2,0,0,4000.0000,'2016-10-01','2018-12-31','2018-02-27 21:16:18',200,'2017-11-30 18:32:13',0),(3,4,1,3,0,0,4150.0000,'2016-07-01','2018-07-01','2018-02-23 08:58:08',0,'2017-11-30 18:34:33',0);
 /*!40000 ALTER TABLE `RentalAgreementRentables` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2227,6 +2254,8 @@ DROP TABLE IF EXISTS `TaskList`;
 CREATE TABLE `TaskList` (
   `TLID` bigint(20) NOT NULL AUTO_INCREMENT,
   `BID` bigint(20) NOT NULL DEFAULT '0',
+  `PTLID` bigint(20) NOT NULL DEFAULT '0',
+  `TLDID` bigint(20) NOT NULL DEFAULT '0',
   `Name` varchar(256) NOT NULL DEFAULT '',
   `Cycle` bigint(20) NOT NULL DEFAULT '0',
   `DtDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
@@ -2236,6 +2265,9 @@ CREATE TABLE `TaskList` (
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
   `DoneUID` bigint(20) NOT NULL DEFAULT '0',
   `PreDoneUID` bigint(20) NOT NULL DEFAULT '0',
+  `EmailList` varchar(2048) NOT NULL DEFAULT '',
+  `DtLastNotify` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `DurWait` bigint(20) NOT NULL DEFAULT '86400000000000',
   `Comment` varchar(2048) NOT NULL DEFAULT '',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
@@ -2270,6 +2302,8 @@ CREATE TABLE `TaskListDefinition` (
   `EpochDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `EpochPreDue` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `FLAGS` bigint(20) NOT NULL DEFAULT '0',
+  `EmailList` varchar(2048) NOT NULL DEFAULT '',
+  `DurWait` bigint(20) NOT NULL DEFAULT '86400000000000',
   `Comment` varchar(2048) NOT NULL DEFAULT '',
   `LastModTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `LastModBy` bigint(20) NOT NULL DEFAULT '0',
@@ -2482,3 +2516,5 @@ UNLOCK TABLES;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2018-06-01 21:13:30

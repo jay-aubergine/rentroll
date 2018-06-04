@@ -724,6 +724,8 @@ window.getParentAccounts = function (BID, delLID) {
 // @return
 //   boolean:  returns false if i == 0
 //             otherwise it returns true
+// This method needed to convert 1/0 value back to bool
+// source: https://github.com/vitmalina/w2ui/blob/master/src/w2form.js#L368
 //-----------------------------------------------------------------------------
 window.int_to_bool = function (i){
     if (i>0) {
@@ -737,25 +739,34 @@ window.int_to_bool = function (i){
 //-----------------------------------------------------------------------------
 // getFormSubmitData - get form submit data
 // @params, w2ui form record object
+//          returnClone = true/false
 // @return
 // @description Helps to build form submit data, it modify record object so that each
 // item in record has just a value instead of another object
 //-----------------------------------------------------------------------------
-window.getFormSubmitData = function (record) {
+window.getFormSubmitData = function (record, returnClone) {
     // check that it is typeof object or not
     if (typeof record !== "object") {
         return;
     }
 
+    var cloneData = $.extend(true, {}, record);
+
     // iterate over each record
-    for(var key in record) {
-        var item = record[key];
-        if (typeof item === "object" && item !== null && "id" in item) {
-            record[key] = item.id;
+    for(var key in cloneData) {
+        if (typeof cloneData[key] === "object" && cloneData[key] !== null && "id" in cloneData[key]) {
+            cloneData[key] = cloneData[key].id;
         }
     }
 
-    return record;
+    // if returnClone is not passed or false then
+    // override cloned data into record
+    if (!returnClone) {
+        $.extend(record, cloneData);
+        return record;
+    }
+
+    return cloneData;
 };
 
 //-----------------------------------------------------------------------------
@@ -785,21 +796,25 @@ window.formRefreshCallBack = function (w2frm, primary_id, form_header, disable_h
     // keep active form original record
     app.active_form_original = $.extend(true, {}, record);
 
-    // if new record then disable delete button
-    // and format the equivalent header
     var header = "";
-    if (id > 0) {
-        header = form_header.format(id);
-        $(w2frm.box).find("button[name=delete]").removeClass("hidden");
-        $(w2frm.box).find("button[name=reverse]").removeClass("hidden");
-    } else {
-        header = form_header.format("new");
-        $(w2frm.box).find("button[name=delete]").addClass("hidden");
-        $(w2frm.box).find("button[name=reverse]").addClass("hidden");
+    if (form_header) { // if form_header passed then
+        // if new record then disable delete button
+        // and format the equivalent header
+        if (id > 0) {
+            header = form_header.format(id);
+            $(w2frm.box).find("button[name=delete]").removeClass("hidden");
+            $(w2frm.box).find("button[name=reverse]").removeClass("hidden");
+        } else {
+            header = form_header.format("new");
+            $(w2frm.box).find("button[name=delete]").addClass("hidden");
+            $(w2frm.box).find("button[name=reverse]").addClass("hidden");
+        }
     }
 
-    if (!disable_header) {
-        w2frm.header = header;
+    if (typeof disable_header !== "undefined") {
+        if (!disable_header) {
+            w2frm.header = header;
+        }
     }
 };
 
@@ -954,11 +969,11 @@ window.exportItemReportCSV = function (rptname,id,dtStart,dtStop,returnURL) {
 // Download the CSV report for given report name, date range
 //
 // @params
-//   rptname            : report name to be downloaded
-//   dtStart            : Start Date
-//   dtStop             : Stop Date
-//   returnURL          : it true then returns the url otherwise
-//                        downloads the report from built url in separate window
+//   rptname   : report name to be downloaded
+//   dtStart   : Start Date
+//   dtStop    : Stop Date
+//   returnURL : it true then returns the url otherwise
+//               downloads the report from built url in separate window
 //-------------------------------------------------------------------------------
 window.exportReportCSV = function (rptname, dtStart, dtStop, returnURL){
     if (rptname === '') {

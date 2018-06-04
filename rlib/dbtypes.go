@@ -15,6 +15,17 @@ const (
 	NO  = int64(0) // std negative value
 	YES = int64(1)
 
+	RECURNONE      = 0
+	RECURSECONDLY  = 1
+	RECURMINUTELY  = 2
+	RECURHOURLY    = 3
+	RECURDAILY     = 4
+	RECURWEEKLY    = 5
+	RECURMONTHLY   = 6
+	RECURQUARTERLY = 7
+	RECURYEARLY    = 8
+	RECURLAST      = RECURYEARLY
+
 	ELEMPERSON          = 1 // people
 	ELEMCOMPANY         = 2 // companies
 	ELEMCLASS           = 3 // classes
@@ -70,16 +81,6 @@ const (
 	ACCTSTATUSACTIVE   = 2
 	RAASSOCIATED       = 1
 	RAUNASSOCIATED     = 2
-
-	CYCLENORECUR   = 0
-	CYCLESECONDLY  = 1
-	CYCLEMINUTELY  = 2
-	CYCLEHOURLY    = 3
-	CYCLEDAILY     = 4
-	CYCLEWEEKLY    = 5
-	CYCLEMONTHLY   = 6
-	CYCLEQUARTERLY = 7
-	CYCLEYEARLY    = 8
 
 	YEARFOREVER = 9000 // an arbitrary year, anything >= to this year is taken to mean "unbounded", or no end date.
 
@@ -151,11 +152,13 @@ const (
 	RRDATEFMT4        = "01/02/2006"
 	RRDATEINPFMT      = "2006-01-02"
 	RRDATEFMTSQL      = RRDATEINPFMT
+	RRDATETIMESQL     = "2006-01-02 15:04:05"
 	RRJSUTCDATETIME   = "Mon, 02 Jan 2006 15:04:05 MST"
 	RRDATETIMEINPFMT  = "2006-01-02 15:04:00 MST"
 	RRDATETIMEFMT     = "2006-01-02T15:04:00Z"
 	RRDATETIMEW2UIFMT = "1/2/2006 3:04 pm"
 	RRDATEREPORTFMT   = "Jan 2, 2006"
+	RRDATETIMERPTFMT  = "Jan 2, 2006 3:04pm MST"
 	RRDATERECEIPTFMT  = "January 2, 2006"
 )
 
@@ -177,21 +180,36 @@ type Period struct {
 	Checked bool // used by Period overlap check functions
 }
 
+// ClosePeriod defines a date and tasklist associated with a period close
+type ClosePeriod struct {
+	CPID        int64
+	BID         int64
+	TLID        int64
+	Dt          time.Time
+	LastModTime time.Time
+	LastModBy   int64
+	CreateTS    time.Time
+	CreateBy    int64
+}
+
 // Task is an indivually tracked work item.
 // FLAGS are defined as follows:
 //    1<<0 pre-completion required (if 0 then there is no pre-completion required)
 //    1<<1 PreCompletion done (if 0 it is not yet done)
 //    1<<2 Completion done (if 0 it is not yet done)
 type Task struct {
-	TID         int64
-	BID         int64
-	TLID        int64     // the TaskList to which this task belongs
-	Name        string    // Task text
-	Worker      string    // Name of the associated work function
-	DtDue       time.Time // Task Due Date
-	DtPreDue    time.Time // Pre Completion due date
-	DtDone      time.Time // Task completion Date
-	DtPreDone   time.Time // Task Pre Completion Date
+	TID       int64
+	BID       int64
+	TLID      int64     // the TaskList to which this task belongs
+	Name      string    // Task text
+	Worker    string    // Name of the associated work function
+	DtDue     time.Time // Task Due Date
+	DtPreDue  time.Time // Pre Completion due date
+	DtDone    time.Time // Task completion Date
+	DtPreDone time.Time // Task Pre Completion Date
+
+	// 1<<1 - 0 = DtPreDue should not be checked, 1 = DtPreDue should be checked
+	// 1<<2 - 0 = DtDue should not be checked, 1 = DtDue should be checked
 	FLAGS       int64
 	DoneUID     int64     // user who marked task as done
 	PreDoneUID  int64     // user who marked task as predone
@@ -204,22 +222,34 @@ type Task struct {
 
 // TaskList is the shell container for a list of tracked tasks
 type TaskList struct {
-	TLID        int64
-	BID         int64
-	Name        string
-	Cycle       int64
-	DtDue       time.Time
-	DtPreDue    time.Time
-	DtDone      time.Time
-	DtPreDone   time.Time
-	FLAGS       int64     // 1<<0 - 0 = active, 1 = inactive
-	DoneUID     int64     // user who marked task as done
-	PreDoneUID  int64     // user who marked task as predone
-	Comment     string    // any user comments
-	CreateTS    time.Time // when was this record created
-	CreateBy    int64     // employee UID (from phonebook) that created it
-	LastModTime time.Time // when was this record last written
-	LastModBy   int64     // employee UID (from phonebook) that modified it
+	TLID      int64
+	BID       int64
+	PTLID     int64 // parent TLDID or 0 if this is the parent of a list
+	TLDID     int64 // what type of task list... the definition
+	Name      string
+	Cycle     int64
+	DtDue     time.Time
+	DtPreDue  time.Time
+	DtDone    time.Time
+	DtPreDone time.Time
+
+	// 1<<0 : 0 = active, 1 = inactive
+	// 1<<1 : 0 = task list definition does not have a PreDueDate, 1 = has a PreDueDate
+	// 1<<2 : 0 = task list definition does not have a DueDate, 1 = has a DueDate
+	// 1<<3 : 0 = DtPreDone has not been set, 1 = DtPreDone has been set
+	// 1<<4 : 0 = DtDone has not been set, 1 = DtDone has been set
+	// 1<<5 : 0 = DtLastNotify has not been set, 1 = it has been set
+	FLAGS        int64
+	DoneUID      int64         // user who marked task as done
+	PreDoneUID   int64         // user who marked task as predone
+	EmailList    string        // email to this list when due date arrives
+	DtLastNotify time.Time     // valid when FLAGS & 32 > 0, last time late notification was sent
+	DurWait      time.Duration // amount of time to wait before next check after late notification
+	Comment      string        // any user comments
+	CreateTS     time.Time     // when was this record created
+	CreateBy     int64         // employee UID (from phonebook) that created it
+	LastModTime  time.Time     // when was this record last written
+	LastModBy    int64         // employee UID (from phonebook) that modified it
 }
 
 // TaskDescriptor is the definition of a task. It is used to make instance
@@ -246,15 +276,17 @@ type TaskListDefinition struct {
 	BID         int64
 	Name        string
 	Cycle       int64
-	Epoch       time.Time // when task list starts
-	EpochDue    time.Time // when task list is due
-	EpochPreDue time.Time // when task list pre-work is due
-	FLAGS       int64     // 1<<0 0 means it is still active, 1 means it is no longer active
-	Comment     string    //
-	CreateTS    time.Time // when was this record created
-	CreateBy    int64     // employee UID (from phonebook) that created it
-	LastModTime time.Time // when was this record last written
-	LastModBy   int64     // employee UID (from phonebook) that modified it
+	Epoch       time.Time     // when task list starts
+	EpochDue    time.Time     // when task list is due
+	EpochPreDue time.Time     // when task list pre-work is due
+	FLAGS       int64         // 1<<0 0 means it is still active, 1 means it is no longer active
+	EmailList   string        // email to this list when due date arrives
+	DurWait     time.Duration // amount of time to wait before next check after late notification
+	Comment     string        //
+	CreateTS    time.Time     // when was this record created
+	CreateBy    int64         // employee UID (from phonebook) that created it
+	LastModTime time.Time     // when was this record last written
+	LastModBy   int64         // employee UID (from phonebook) that modified it
 }
 
 // AIRAuthenticateResponse is the reply structure from Accord Directory
@@ -742,6 +774,7 @@ type TransactantTypeDown struct {
 // RentableTypeDown is the struct needed to match names in typedown controls
 type RentableTypeDown struct {
 	Recid        int64 `json:"recid"` // this will hold the RID
+	RID          int64
 	RentableName string
 }
 
@@ -839,22 +872,23 @@ type Expense struct {
 }
 
 // AR is the table that defines the AcctRules for Assessments, Expenses and Receipts
+// FLAGS
+//  1<<0 = apply funds to Receive accts,
+//  1<<1 - populate on Rental Agreement,
+//  1<<2 = RAID required,
+//  1<<3 = subARIDs apply
 type AR struct {
-	ARID        int64
-	BID         int64
-	Name        string
-	ARType      int64 // 0 = Assessment, 1 = Receipt, 2 = Expense
-	DebitLID    int64
-	CreditLID   int64
-	Description string
-	RARequired  int64
-	DtStart     time.Time
-	DtStop      time.Time
-	FLAGS       uint64 /* 1<<0 = apply funds to Receive accts,
-	 * 1<<1 - populate on Rental Agreement,
-	 * 1<<2 = RAID required,
-	 * 1<<3 = subARIDs apply
-	 */
+	ARID          int64
+	BID           int64
+	Name          string
+	ARType        int64 // 0 = Assessment, 1 = Receipt, 2 = Expense
+	DebitLID      int64
+	CreditLID     int64
+	Description   string
+	RARequired    int64
+	DtStart       time.Time
+	DtStop        time.Time
+	FLAGS         uint64
 	DefaultAmount float64 // use this as the default amount in ui for newly created Assessments
 	LastModTime   time.Time
 	LastModBy     int64
@@ -883,6 +917,7 @@ type Business struct {
 	DefaultRentCycle      int64     // Default for every Rentable Type, useful in initializing the UI for new RentableTypes
 	DefaultProrationCycle int64     // Default for every Rentable Type, useful in initializing the UI for new RentableTypes
 	DefaultGSRPC          int64     // Default for every Rentable Type, useful in initializing the UI for new RentableTypes
+	ClosePeriodTLID       int64     // TaskList used for closing a period
 	FLAGS                 int64     // FLAGS -- 1<<0 = 0 - EDI disabled, 1=EDI enabled
 	LastModTime           time.Time // when was this record last written
 	LastModBy             int64     // employee UID (from phonebook) that modified it
@@ -1112,22 +1147,22 @@ type RentableSpecialty struct {
 
 // RentableType is the set of attributes describing the different types of Rentable items
 type RentableType struct {
-	RTID           int64                      // unique identifier for this RentableType
-	BID            int64                      // the business unit to which this RentableType belongs
-	Style          string                     // a short name
-	Name           string                     // longer name
-	RentCycle      int64                      // frequency at which rent accrues, 0 = not set or n/a, 1 = secondly, 2=minutely, 3=hourly, 4=daily, 5=weekly, 6=monthly...
-	Proration      int64                      // frequency for prorating rent if the full rentcycle is not used
-	GSRPC          int64                      // Time increments in which GSR is calculated to account for rate changes
-	ManageToBudget int64                      // 0=no, 1 = yes
-	FLAGS          uint64                     // 0=active, 1=inactive
-	MR             []RentableMarketRate       // array of time sensitive market rates
-	CA             map[string]CustomAttribute // index by Name of attribute, associated custom attributes
-	MRCurrent      float64                    // the current market rate (historical values are in MR)
-	LastModTime    time.Time
-	LastModBy      int64
-	CreateTS       time.Time // when was this record created
-	CreateBy       int64     // employee UID (from phonebook) that created it
+	RTID        int64                      // unique identifier for this RentableType
+	BID         int64                      // the business unit to which this RentableType belongs
+	Style       string                     // a short name
+	Name        string                     // longer name
+	RentCycle   int64                      // frequency at which rent accrues, 0 = not set or n/a, 1 = secondly, 2=minutely, 3=hourly, 4=daily, 5=weekly, 6=monthly...
+	Proration   int64                      // frequency for prorating rent if the full rentcycle is not used
+	GSRPC       int64                      // Time increments in which GSR is calculated to account for rate changes
+	FLAGS       uint64                     // 0=active, 1=inactive
+	ARID        int64                      // ARID reference, for default rent amount for this types
+	MR          []RentableMarketRate       // array of time sensitive market rates
+	CA          map[string]CustomAttribute // index by Name of attribute, associated custom attributes
+	MRCurrent   float64                    // the current market rate (historical values are in MR)
+	LastModTime time.Time
+	LastModBy   int64
+	CreateTS    time.Time // when was this record created
+	CreateBy    int64     // employee UID (from phonebook) that created it
 }
 
 // RentableMarketRate describes the market rate rent for a Rentable type over a time period
@@ -1370,13 +1405,11 @@ type GLAccount struct {
 	// RARequired  int64     // 0 = during rental period, 1 = valid prior or during, 2 = valid during or after, 3 = valid before, during, and after
 }
 
-// FlowPart is a structure for to store temporarity flow data latest one
-type FlowPart struct {
-	FlowPartID  int64           // primary auto increment key
+// Flow is a structure for to store temporarity flow data latest one
+type Flow struct {
 	BID         int64           // Business unit associated with this FlowPart
-	Flow        string          // RA="Rental Agreement Flow" etc...
-	FlowID      string          // Unique ID across all relavant data for this flow -- UnixNano(32 bits) + User ID
-	PartType    int             // flow part type ("ASM","PET","VEHICLE")
+	FlowID      int64           // primary auto increment key
+	FlowType    string          // RA="Rental Agreement Flow" etc...
 	Data        json.RawMessage // json data in mysql
 	LastModTime time.Time       // last modified time
 	LastModBy   int64           // last modified by whom
@@ -1428,7 +1461,6 @@ type RRprepSQL struct {
 	DeleteRentableMarketRateInstance        *sql.Stmt
 	DeleteRentableSpecialtyRef              *sql.Stmt
 	DeleteRentableStatus                    *sql.Stmt
-	DeleteRentableType                      *sql.Stmt
 	DeleteRentableTypeRef                   *sql.Stmt
 	DeleteRentableTypeRefWithRTID           *sql.Stmt
 	DeleteRentableUser                      *sql.Stmt
@@ -1447,8 +1479,7 @@ type RRprepSQL struct {
 	DeleteTransactant                       *sql.Stmt
 	DeleteUser                              *sql.Stmt
 	DeleteVehicle                           *sql.Stmt
-	DeleteFlowPart                          *sql.Stmt
-	DeleteFlowPartsByFlowID                 *sql.Stmt
+	DeleteFlow                              *sql.Stmt
 	FindAgreementByRentable                 *sql.Stmt
 	FindTCIDByNote                          *sql.Stmt
 	FindTransactantByPhoneOrEmail           *sql.Stmt
@@ -1490,6 +1521,7 @@ type RRprepSQL struct {
 	GetAR                                   *sql.Stmt
 	GetARByName                             *sql.Stmt
 	GetARsByType                            *sql.Stmt
+	GetARsByFLAGS                           *sql.Stmt
 	GetAssessment                           *sql.Stmt
 	GetAssessmentDuplicate                  *sql.Stmt
 	GetAssessmentInstance                   *sql.Stmt
@@ -1616,11 +1648,9 @@ type RRprepSQL struct {
 	GetVehiclesByBID                        *sql.Stmt
 	GetVehiclesByLicensePlate               *sql.Stmt
 	GetVehiclesByTransactant                *sql.Stmt
-	GetFlowIDsByUser                        *sql.Stmt
-	GetFlowPart                             *sql.Stmt
-	GetFlowPartByPartType                   *sql.Stmt
-	GetFlowPartsByFlowID                    *sql.Stmt
-	GetFlowPartsByFlow                      *sql.Stmt
+	GetFlow                                 *sql.Stmt // flow table
+	GetFlowsByFlowType                      *sql.Stmt // flow table
+	GetFlowIDsByUser                        *sql.Stmt // flow table
 	InsertAR                                *sql.Stmt
 	InsertAssessment                        *sql.Stmt
 	InsertAssessmentType                    *sql.Stmt
@@ -1675,7 +1705,7 @@ type RRprepSQL struct {
 	InsertTransactant                       *sql.Stmt
 	InsertUser                              *sql.Stmt
 	InsertVehicle                           *sql.Stmt
-	InsertFlowPart                          *sql.Stmt
+	InsertFlow                              *sql.Stmt // flow table
 	ReadRatePlan                            *sql.Stmt
 	ReadRatePlanRef                         *sql.Stmt
 	UIRAGrid                                *sql.Stmt
@@ -1708,6 +1738,7 @@ type RRprepSQL struct {
 	UpdateRentableStatus                    *sql.Stmt
 	UpdateRentableType                      *sql.Stmt
 	UpdateRentableTypeToActive              *sql.Stmt
+	UpdateRentableTypeToInactive            *sql.Stmt
 	UpdateRentableTypeRef                   *sql.Stmt
 	UpdateRentableUser                      *sql.Stmt
 	UpdateRentableUserByRBT                 *sql.Stmt
@@ -1722,7 +1753,7 @@ type RRprepSQL struct {
 	UpdateTransactant                       *sql.Stmt
 	UpdateUser                              *sql.Stmt
 	UpdateVehicle                           *sql.Stmt
-	UpdateFlowPart                          *sql.Stmt
+	UpdateFlowData                          *sql.Stmt // flow table
 	GetAssessmentInstancesByParent          *sql.Stmt
 	GetJournalAllocationsByASMID            *sql.Stmt
 	GetRentableTypeRefs                     *sql.Stmt
@@ -1779,79 +1810,16 @@ type RRprepSQL struct {
 	GetTaskListDescriptors                  *sql.Stmt
 	DeleteTaskListTasks                     *sql.Stmt
 	GetTaskListDefinitionByName             *sql.Stmt
-}
-
-// AllTables is an array of strings containing the names of every table in the RentRoll database
-var AllTables = []string{
-	"AR",
-	"AssessmentTax",
-	"Assessments",
-	"AvailabilityTypes",
-	"Building",
-	"Business",
-	"BusinessAssessments",
-	"BusinessPaymentTypes",
-	"CommissionLedger",
-	"CustomAttr",
-	"CustomAttrRef",
-	"DemandSource",
-	"Deposit",
-	"DepositMethod",
-	"DepositPart",
-	"Depository",
-	"Expense",
-	"GLAccount",
-	"Invoice",
-	"InvoiceAssessment",
-	"InvoicePayor",
-	"Journal",
-	"JournalAllocation",
-	"JournalAudit",
-	"JournalMarker",
-	"JournalMarkerAudit",
-	"LeadSource",
-	"LedgerAudit",
-	"LedgerEntry",
-	"LedgerMarker",
-	"LedgerMarkerAudit",
-	"MRHistory",
-	"NoteList",
-	"NoteType",
-	"Notes",
-	"OtherDeliverables",
-	"PaymentType",
-	"Payor",
-	"Prospect",
-	"RatePlan",
-	"RatePlanOD",
-	"RatePlanRef",
-	"RatePlanRefRTRate",
-	"RatePlanRefSPRate",
-	"Receipt",
-	"ReceiptAllocation",
-	"Rentable",
-	"RentableMarketRate",
-	"RentableSpecialty",
-	"RentableSpecialtyRef",
-	"RentableStatus",
-	"RentableTypeRef",
-	"RentableTypeTax",
-	"RentableTypes",
-	"RentableUsers",
-	"RentalAgreement",
-	"RentalAgreementPayors",
-	"RentalAgreementPets",
-	"RentalAgreementRentables",
-	"RentalAgreementTax",
-	"RentalAgreementTemplate",
-	"SLString",
-	"StringList",
-	"SubAR",
-	"Tax",
-	"TaxRate",
-	"Transactant",
-	"User",
-	"Vehicle",
+	GetDueTaskLists                         *sql.Stmt
+	CheckForTLDInstances                    *sql.Stmt
+	GetAllParentTaskLists                   *sql.Stmt
+	GetTaskListInstanceInRange              *sql.Stmt
+	GetLatestCompletedTaskList              *sql.Stmt
+	GetClosePeriod                          *sql.Stmt
+	GetLastClosePeriod                      *sql.Stmt
+	InsertClosePeriod                       *sql.Stmt
+	UpdateClosePeriod                       *sql.Stmt
+	DeleteClosePeriod                       *sql.Stmt
 }
 
 // DeleteBusinessFromDB deletes information from all tables if it is part of the supplied BID.
@@ -1860,8 +1828,8 @@ func DeleteBusinessFromDB(ctx context.Context, BID int64) (int64, error) {
 	// Might want to check context values here? like session, transaction?
 
 	noRecs := int64(0)
-	for i := 0; i < len(AllTables); i++ {
-		s := fmt.Sprintf("DELETE FROM %s WHERE BID=%d", AllTables[i], BID)
+	for k := range RRdb.DBFields {
+		s := fmt.Sprintf("DELETE FROM %s WHERE BID=%d", k, BID)
 		result, err := RRdb.Dbrr.Exec(s)
 		if err != nil {
 			Ulog("DeleteBusinessFromDB: error executing %q   -- err = %s\n", s, err.Error())

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"rentroll/bizlogic"
 	"rentroll/rlib"
 	"rentroll/worker"
 	"sort"
@@ -13,12 +14,6 @@ import (
 
 	"github.com/kardianos/osext"
 )
-
-// manage to budget
-var manageToBudget = rlib.Str2Int64Map{
-	"No": 0,
-	"Yes (Market Rate required)": 1,
-}
 
 // rentroll report row flags
 var rrFLAGS = rlib.Str2Int64Map{
@@ -53,8 +48,6 @@ var idTextMapList = []struct {
 }{
 	{"renewalMap", &rlib.RenewalMap},
 	{"companyOrPerson", &rlib.CompanyOrPersonMap},
-	{"manageToBudgetList", &manageToBudget},
-	{"rtActiveFLAGS", &rlib.RtActiveFLAGS},
 }
 
 var ssliceToJS = []struct {
@@ -189,8 +182,14 @@ func SvcUILists(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	// --------------- LIST DOWN rentroll report FLAGS --------------
 	appData["rrFLAGS"] = rrFLAGS
 
+	// --------------- LIST DOWN account rules FLAGS --------------
+	appData["arFLAGS"] = bizlogic.ARFLAGS
+
+	// --------------- LIST DOWN rentable type FLAGS --------------
+	appData["rtFLAGS"] = bizlogic.RTFLAGS
+
 	// --------------- LIST DOWN ra flow part types --------------
-	appData["raFlowPartTypes"] = raFlowPartTypes
+	appData["raFlowPartTypes"] = rlib.RAFlowPartsMap
 
 	// --------------- MAPPING - smapToJS ----------------------
 	for i := 0; i < len(smapToJS); i++ {

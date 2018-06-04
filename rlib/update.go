@@ -79,7 +79,7 @@ func UpdateBusiness(ctx context.Context, a *Business) error {
 	}
 
 	// TODO(Sudip): keep mind this FLAGS insertion in fields, this might be removed in the future
-	fields := []interface{}{a.Designation, a.Name, a.DefaultRentCycle, a.DefaultProrationCycle, a.DefaultGSRPC, a.FLAGS, a.LastModBy, a.BID}
+	fields := []interface{}{a.Designation, a.Name, a.DefaultRentCycle, a.DefaultProrationCycle, a.DefaultGSRPC, a.ClosePeriodTLID, a.FLAGS, a.LastModBy, a.BID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateBusiness)
 		defer stmt.Close()
@@ -92,6 +92,32 @@ func UpdateBusiness(ctx context.Context, a *Business) error {
 	RRdb.BUDlist, RRdb.BizCache = BuildBusinessDesignationMap()
 
 	return updateError(err, "Business", *a)
+}
+
+// UpdateClosePeriod updates an ClosePeriod record
+func UpdateClosePeriod(ctx context.Context, a *ClosePeriod) error {
+	var err error
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		sess, ok := SessionFromContext(ctx)
+		if !ok {
+			return ErrSessionRequired
+		}
+		// user from session, CreateBy, LastModBy
+		a.LastModBy = sess.UID
+	}
+
+	fields := []interface{}{a.BID, a.TLID, a.Dt, a.CreateBy, a.LastModBy, a.CPID}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.UpdateClosePeriod)
+		defer stmt.Close()
+		_, err = stmt.Exec(fields...)
+	} else {
+		_, err = RRdb.Prepstmt.UpdateClosePeriod.Exec(fields...)
+	}
+
+	return updateError(err, "ClosePeriod", *a)
 }
 
 // UpdateCustomAttribute updates an CustomAttribute record
@@ -837,7 +863,7 @@ func UpdateRentableType(ctx context.Context, a *RentableType) error {
 		a.LastModBy = sess.UID
 	}
 
-	fields := []interface{}{a.BID, a.Style, a.Name, a.RentCycle, a.Proration, a.GSRPC, a.ManageToBudget, a.LastModBy, a.RTID}
+	fields := []interface{}{a.BID, a.Style, a.Name, a.RentCycle, a.Proration, a.GSRPC, a.ARID, a.FLAGS, a.LastModBy, a.RTID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateRentableType)
 		defer stmt.Close()
@@ -848,7 +874,7 @@ func UpdateRentableType(ctx context.Context, a *RentableType) error {
 	return updateError(err, "RentableType", *a)
 }
 
-// UpdateRentableTypeToActive reactivates a RentableType record in the database
+// UpdateRentableTypeToActive makes a rentabletype as active
 func UpdateRentableTypeToActive(ctx context.Context, a *RentableType) error {
 	var err error
 
@@ -868,6 +894,30 @@ func UpdateRentableTypeToActive(ctx context.Context, a *RentableType) error {
 		_, err = stmt.Exec(fields...)
 	} else {
 		_, err = RRdb.Prepstmt.UpdateRentableTypeToActive.Exec(fields...)
+	}
+	return updateError(err, "RentableType", *a)
+}
+
+// UpdateRentableTypeToInactive makes a rentabletype inactive
+func UpdateRentableTypeToInactive(ctx context.Context, a *RentableType) error {
+	var err error
+
+	// session... context
+	if !(RRdb.noAuth && AppConfig.Env != extres.APPENVPROD) {
+		sess, ok := SessionFromContext(ctx)
+		if !ok {
+			return ErrSessionRequired
+		}
+		// user from session, CreateBy, LastModBy
+		a.LastModBy = sess.UID
+	}
+	fields := []interface{}{a.LastModBy, a.RTID}
+	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
+		stmt := tx.Stmt(RRdb.Prepstmt.UpdateRentableTypeToInactive)
+		defer stmt.Close()
+		_, err = stmt.Exec(fields...)
+	} else {
+		_, err = RRdb.Prepstmt.UpdateRentableTypeToInactive.Exec(fields...)
 	}
 	return updateError(err, "RentableType", *a)
 }
@@ -1066,7 +1116,7 @@ func UpdateTaskList(ctx context.Context, a *TaskList) error {
 	if authProblem(ctx, &a.LastModBy) {
 		return ErrSessionRequired
 	}
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.DtDue, a.DtPreDue, a.DtDone, a.DtPreDone, a.FLAGS, a.DoneUID, a.PreDoneUID, a.Comment, a.LastModBy, a.TLID}
+	fields := []interface{}{a.BID, a.PTLID, a.TLDID, a.Name, a.Cycle, a.DtDue, a.DtPreDue, a.DtDone, a.DtPreDone, a.FLAGS, a.DoneUID, a.PreDoneUID, a.EmailList, a.DtLastNotify, a.DurWait, a.Comment, a.LastModBy, a.TLID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateTransactant)
 		defer stmt.Close()
@@ -1101,7 +1151,7 @@ func UpdateTaskListDefinition(ctx context.Context, a *TaskListDefinition) error 
 	if authProblem(ctx, &a.LastModBy) {
 		return ErrSessionRequired
 	}
-	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.Comment, a.LastModBy, a.TLDID}
+	fields := []interface{}{a.BID, a.Name, a.Cycle, a.Epoch, a.EpochDue, a.EpochPreDue, a.FLAGS, a.EmailList, a.DurWait, a.Comment, a.LastModBy, a.TLDID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
 		stmt := tx.Stmt(RRdb.Prepstmt.UpdateTransactant)
 		defer stmt.Close()
@@ -1189,8 +1239,8 @@ func UpdateVehicle(ctx context.Context, a *Vehicle) error {
 	return updateError(err, "Vehicle", *a)
 }
 
-// UpdateFlowPart updates the flow part by data provided in flowpart
-func UpdateFlowPart(ctx context.Context, a *FlowPart) error {
+// UpdateFlowData updates the flow Data json column
+func UpdateFlowData(ctx context.Context, jsonDataKey string, jsonData []byte, a *Flow) error {
 	var err error
 
 	// session... context
@@ -1204,19 +1254,19 @@ func UpdateFlowPart(ctx context.Context, a *FlowPart) error {
 	}
 
 	// make sure that json is valid before inserting it in database
-	if !(IsFlowDataValidJSON(a.Data)) {
+	if !(IsByteDataValidJSON(jsonData)) {
 		return ErrFlowInvalidJSONData
 	}
 
 	// as a.Data is type of json.RawMessage - convert it to byte stream so that it can be inserted
 	// in mysql `json` type column
-	fields := []interface{}{a.BID, a.Flow, a.FlowID, a.PartType, []byte(a.Data), a.LastModBy, a.FlowPartID}
+	fields := []interface{}{jsonDataKey, jsonData, a.FlowID}
 	if tx, ok := DBTxFromContext(ctx); ok { // if transaction is supplied
-		stmt := tx.Stmt(RRdb.Prepstmt.UpdateFlowPart)
+		stmt := tx.Stmt(RRdb.Prepstmt.UpdateFlowData)
 		defer stmt.Close()
 		_, err = stmt.Exec(fields...)
 	} else {
-		_, err = RRdb.Prepstmt.UpdateFlowPart.Exec(fields...)
+		_, err = RRdb.Prepstmt.UpdateFlowData.Exec(fields...)
 	}
-	return updateError(err, "FlowPart", *a)
+	return updateError(err, "Flow", *a)
 }

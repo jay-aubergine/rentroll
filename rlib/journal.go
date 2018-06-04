@@ -140,13 +140,13 @@ func ProrateAssessment(ctx context.Context, xbiz *XBusiness, a *Assessment, d, d
 			Ulog("ProrateAssessment: error getting rental agreement RAID=%d, err = %s\n", a.RAID, err.Error())
 		} else {
 			switch a.RentCycle {
-			case CYCLEDAILY:
-				// Console("%s: CYCLEDAILY: ra.RAID = %d, ra.RentStart = %s, ra.RentStop = %s\n", funcname, ra.RAID, ra.RentStart.Format(RRDATEFMT4), ra.RentStop.Format(RRDATEFMT4))
+			case RECURDAILY:
+				// Console("%s: RECURDAILY: ra.RAID = %d, ra.RentStart = %s, ra.RentStop = %s\n", funcname, ra.RAID, ra.RentStart.Format(RRDATEFMT4), ra.RentStop.Format(RRDATEFMT4))
 				pf, num, den, start, stop = CalcProrationInfo(&ra.RentStart, &ra.RentStop, d, d, a.RentCycle, a.ProrationCycle)
-			case CYCLENORECUR:
+			case RECURNONE:
 				fallthrough
-			case CYCLEMONTHLY:
-				// Console("%s: CYCLEMONTHLY: ra.RAID = %d, ra.RentStart = %s, ra.RentStop = %s\n", funcname, ra.RAID, ra.RentStart.Format(RRDATEFMT4), ra.RentStop.Format(RRDATEFMT4))
+			case RECURMONTHLY:
+				// Console("%s: RECURMONTHLY: ra.RAID = %d, ra.RentStart = %s, ra.RentStop = %s\n", funcname, ra.RAID, ra.RentStart.Format(RRDATEFMT4), ra.RentStop.Format(RRDATEFMT4))
 				pf, num, den, start, stop = CalcProrationInfo(&ra.RentStart, &ra.RentStop, d1, d2, a.RentCycle, a.ProrationCycle)
 			default:
 				LogAndPrint("Accrual rate %d not implemented\n", a.RentCycle)
@@ -514,12 +514,15 @@ func ProcessJournalEntry(ctx context.Context, a *Assessment, xbiz *XBusiness, d1
 			// when their associated RentalAgreements stopped.
 			//--------------------------------------------------------------------------------
 			if a.RAID > 0 {
+				// Console("a.RAID = %d\n", a.RAID)
 				ra, err := GetRentalAgreement(ctx, a.RAID)
 				if err != nil {
 					LogAndPrintError(funcname, err)
 					return err
 				}
+				// Console("ra.RentStop = %s\n", ra.RentStop)
 				if a1.Start.After(ra.RentStop) || a1.Start.Equal(ra.RentStop) {
+					// Console("Do not add the new assessment\n")
 					err = fmt.Errorf("%s:  Cannot add new assessment instance on %s after RentalAgreement (%s) stop date %s", funcname, a1.Start.Format(RRDATEREPORTFMT), ra.IDtoShortString(), ra.RentStop.Format(RRDATEREPORTFMT))
 					LogAndPrintError(funcname, err)
 					return err

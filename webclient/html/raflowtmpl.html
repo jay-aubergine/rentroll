@@ -1,6 +1,6 @@
 <div id="raflow-container">
-    <div id="slider">
-        <section id="slider-content"></section>
+    <div class="slider" data-slider-id="1">
+        <section class="slider-content"></section>
         <div class="clearfix"></div>
     </div>
     <div id="ra-form"> <!-- RA Form Section -->
@@ -10,13 +10,13 @@
                 <li class="active" data-target="#dates">
                     <a href="#">
                         <span class="step">1</span>
-                        <span class="title">Info - Dates</span>
+                        <span class="title">Dates</span>
                     </a>
                 </li>
                 <li data-target="#people">
                     <a href="#">
                         <span class="step">2</span>
-                        <span class="title">Payors, Users</span>
+                        <span class="title">Renters, Occupants</span>
                     </a>
                 </li>
                 <li data-target="#pets">
@@ -31,22 +31,22 @@
                         <span class="title">Vehicles</span>
                     </a>
                 </li>
-                <li data-target="#bginfo">
-                    <a href="#">
-                        <span class="step">5</span>
-                        <span class="title">Background Info</span>
-                    </a>
-                </li>
                 <li data-target="#rentables">
                     <a href="#">
-                        <span class="step">6</span>
+                        <span class="step">5</span>
                         <span class="title">Rentables</span>
                     </a>
                 </li>
-                <li data-target="#feesterms">
+                <li data-target="#parentchild">
+                    <a href="#">
+                        <span class="step">6</span>
+                        <span class="title">Parent/Child</span>
+                    </a>
+                </li>
+                <li data-target="#tie">
                     <a href="#">
                         <span class="step">7</span>
-                        <span class="title">Fees, Terms</span>
+                        <span class="title">Tie</span>
                     </a>
                 </li>
                 <li data-target="#final">
@@ -62,27 +62,13 @@
         <!-- info dates section -->
         <div id="section-wrapper">
             <section class="ra-form-component" id="dates">
-                <div class="form-container"></div>
+                <div class="form-container">Dates Form</div>
             </section>
 
             <!-- payors, users section -->
             <section class="ra-form-component" id="people">
-                <div class="form-container"></div>
-                <section id="people-type-containers">
-                    <div id="payor-list" class="people-type">
-                        <label>Payors</label>
-                        <ul class="people-listing" data-people-type="payors"></ul>
-                    </div>
-                    <div id="user-list" class="people-type">
-                        <label>Users</label>
-                        <ul class="people-listing" data-people-type="users"></ul>
-                    </div>
-                    <div id="guarantor-list" class="people-type">
-                        <label>Guarantors</label>
-                        <ul class="people-listing" data-people-type="guarantors"></ul>
-                    </div>
-                    <div class="clearfix"></div>
-                </section>
+                <div class="form-container">People Search Form</div>
+                <div class="grid-container">People Grid</div>
             </section>
 
             <!-- pets section -->
@@ -93,7 +79,7 @@
                                     Have pets?
                             </label>
                     </section>
-                <div class="form-container"></div>
+                <div class="grid-container">Pets Grid</div>
             </section>
 
             <!-- vehicle section -->
@@ -104,22 +90,23 @@
                                     Have vehicles?
                             </label>
                     </section>
-                    <div class="form-container">Vehicles Section</div>
-            </section>
-
-            <!-- background info section -->
-            <section class="ra-form-component" id="bginfo">
-                <div class="form-container">Background Information Section</div>
+                    <div class="grid-container">Vehicles Grid</div>
             </section>
 
             <!-- rentables section -->
             <section class="ra-form-component" id="rentables">
-                <div class="form-container">Rentables Section</div>
+                <div class="form-container">Rentable Search Form</div>
+                <div class="grid-container">Rentables Grid</div>
             </section>
 
-            <!-- fees, terms section -->
-            <section class="ra-form-component" id="feesterms">
-                <div class="form-container">Fees Terms Section</div>
+            <!-- parent/child section -->
+            <section class="ra-form-component" id="parentchild">
+                <div class="grid-container">Parent Child Rentables Grid</div>
+            </section>
+
+            <!-- tie section -->
+            <section class="ra-form-component" id="tie">
+                <div class="grid-container"></div>
             </section>
 
             <!-- final section -->

@@ -101,6 +101,8 @@ func buildPreparedStatements() {
 	Errcheck(err)
 	RRdb.Prepstmt.GetARsByType, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM AR WHERE BID=? AND ARType=?")
 	Errcheck(err)
+	RRdb.Prepstmt.GetARsByFLAGS, err = RRdb.Dbrr.Prepare("SELECT DISTINCT " + flds + " FROM AR WHERE BID=? AND (CASE WHEN ? > 0 THEN FLAGS&? ELSE FLAGS=0 END)")
+	Errcheck(err)
 	RRdb.Prepstmt.GetAllARs, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM AR WHERE BID=?")
 	Errcheck(err)
 
@@ -171,7 +173,7 @@ func buildPreparedStatements() {
 	//==========================================
 	// Business
 	//==========================================
-	flds = "BID,BUD,Name,DefaultRentCycle,DefaultProrationCycle,DefaultGSRPC,FLAGS,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "BID,BUD,Name,DefaultRentCycle,DefaultProrationCycle,DefaultGSRPC,ClosePeriodTLID,FLAGS,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["Business"] = flds
 	RRdb.Prepstmt.GetAllBusinesses, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM Business ORDER BY Name ASC")
 	Errcheck(err)
@@ -186,6 +188,24 @@ func buildPreparedStatements() {
 	RRdb.Prepstmt.UpdateBusiness, err = RRdb.Dbrr.Prepare("UPDATE Business SET " + s3 + " WHERE BID=?")
 	Errcheck(err)
 	RRdb.Prepstmt.GetAllBusinessRentableSpecialtyTypes, err = RRdb.Dbrr.Prepare("SELECT RSPID,BID,Name,Fee,Description,CreateTS,CreateBy,LastModTime,LastModBy FROM RentableSpecialty WHERE BID=?")
+	Errcheck(err)
+
+	//==========================================
+	// Close Period
+	//==========================================
+	flds = "CPID,BID,TLID,Dt,CreateTS,CreateBy,LastModTime,LastModBy"
+	RRdb.DBFields["ClosePeriod"] = flds
+	RRdb.Prepstmt.GetClosePeriod, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM ClosePeriod WHERE CPID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.GetLastClosePeriod, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM ClosePeriod WHERE BID=? ORDER BY Dt DESC LIMIT 1")
+	Errcheck(err)
+
+	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
+	RRdb.Prepstmt.InsertClosePeriod, err = RRdb.Dbrr.Prepare("INSERT INTO ClosePeriod (" + s1 + ") VALUES(" + s2 + ")")
+	Errcheck(err)
+	RRdb.Prepstmt.UpdateClosePeriod, err = RRdb.Dbrr.Prepare("UPDATE ClosePeriod SET " + s3 + " WHERE CPID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.DeleteClosePeriod, err = RRdb.Dbrr.Prepare("DELETE FROM ClosePeriod WHERE CPID=?")
 	Errcheck(err)
 
 	//==========================================
@@ -1040,7 +1060,7 @@ func buildPreparedStatements() {
 	//===============================
 	//  Rentable Type
 	//===============================
-	flds = "RTID,BID,Style,Name,RentCycle,Proration,GSRPC,ManageToBudget,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "RTID,BID,Style,Name,RentCycle,Proration,GSRPC,ARID,FLAGS,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["RentableTypes"] = flds
 	RRdb.Prepstmt.CountBusinessRentableTypes, err = RRdb.Dbrr.Prepare("SELECT COUNT(RTID) FROM RentableTypes WHERE BID=?")
 	Errcheck(err)
@@ -1058,9 +1078,9 @@ func buildPreparedStatements() {
 	Errcheck(err)
 	RRdb.Prepstmt.UpdateRentableType, err = RRdb.Dbrr.Prepare("UPDATE RentableTypes SET " + s3 + " WHERE RTID=?")
 	Errcheck(err)
-	RRdb.Prepstmt.DeleteRentableType, err = RRdb.Dbrr.Prepare("UPDATE RentableTypes SET FLAGS=1 WHERE RTID=?")
+	RRdb.Prepstmt.UpdateRentableTypeToActive, err = RRdb.Dbrr.Prepare("UPDATE RentableTypes SET FLAGS=FLAGS&(~(1<<0)),LastModBy=? WHERE RTID=?")
 	Errcheck(err)
-	RRdb.Prepstmt.UpdateRentableTypeToActive, err = RRdb.Dbrr.Prepare("UPDATE RentableTypes SET FLAGS=0,LastModBy=? WHERE RTID=?")
+	RRdb.Prepstmt.UpdateRentableTypeToInactive, err = RRdb.Dbrr.Prepare("UPDATE RentableTypes SET FLAGS=FLAGS|(1<<0),LastModBy=? WHERE RTID=?")
 	Errcheck(err)
 
 	//===============================
@@ -1176,11 +1196,52 @@ func buildPreparedStatements() {
 	//==========================================
 	// TASKLIST
 	//==========================================
-	//      1    2   3    4     5     6        7      8          9    10      11         12      13       14       15          16
-	flds = "TLID,BID,Name,Cycle,DtDue,DtPreDue,DtDone,DtPreDone,FLAGS,DoneUID,PreDoneUID,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
+	//      1    2   3    4     5     6        7      8          9    10      11         12        13           14             15       16       17,         18
+	flds = "TLID,BID,PTLID,TLDID,Name,Cycle,DtDue,DtPreDue,DtDone,DtPreDone,FLAGS,DoneUID,PreDoneUID,EmailList,DtLastNotify,DurWait,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskList"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
 	RRdb.Prepstmt.GetTaskList, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList WHERE TLID=?")
+	Errcheck(err)
+	RRdb.Prepstmt.GetAllParentTaskLists, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList WHERE PTLID=0")
+	Errcheck(err)
+	RRdb.Prepstmt.GetLatestCompletedTaskList, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList WHERE (FLAGS & 16 > 0) AND ((PTLID = 0 AND TLID = ?) OR PTLID=?) ORDER BY DtDone DESC LIMIT 1")
+	Errcheck(err)
+	RRdb.Prepstmt.GetTaskListInstanceInRange, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList WHERE (PTLID=? OR (PTLID=0 AND TLID=?)) AND DtDue >= ? AND DtDue < ?")
+	Errcheck(err)
+
+	where := `WHERE
+    -- the TaskList is enabled
+    (FLAGS & 1 = 0)
+    AND
+	(
+		(
+			-- no notifications have been made
+			(FLAGS & 32 = 0)
+			OR
+			(
+				-- notification has been made
+				(FLAGS & 32 > 0)
+				AND
+				-- wait period after last notify has passed
+				(DATE_ADD(DtLastNotify, interval DurWait/1000 microsecond) < ?)
+			)
+		)
+		AND
+		(
+			-- PreDone check needed  No Due Date         due rqd                Done not set    DueDate passed   DueDate not passed   PreDone not set    PreDueDate has passed
+			((FLAGS & 2) > 0  AND  ((FLAGS & 4) = 0 OR ((FLAGS & 4) > 0 AND ( ((FLAGS & 16 = 0) AND ? > DtDue) OR ? < DtDue) ) ) AND ((FLAGS & 8 = 0) AND ? > DtPreDue))
+			OR
+			--  Done check needed  Done is not set AND Due date has passed
+			((FLAGS & 4) > 0  AND  (FLAGS & 16 = 0) AND ? > DtDue)
+		)
+	);`
+	RRdb.Prepstmt.GetDueTaskLists, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskList " + where)
+	Errcheck(err)
+
+	RRdb.Prepstmt.CheckForTLDInstances, err = RRdb.Dbrr.Prepare("SELECT COUNT(*) FROM TaskList WHERE TLDID=?")
+	Errcheck(err)
+
+	RRdb.Prepstmt.CheckForTLDInstances, err = RRdb.Dbrr.Prepare("SELECT COUNT(*) FROM TaskList WHERE TLDID=?")
 	Errcheck(err)
 	RRdb.Prepstmt.InsertTaskList, err = RRdb.Dbrr.Prepare("INSERT INTO TaskList (" + s1 + ") VALUES(" + s2 + ")")
 	Errcheck(err)
@@ -1211,7 +1272,7 @@ func buildPreparedStatements() {
 	//==========================================
 	// TASK LIST DEFINITION
 	//==========================================
-	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
+	flds = "TLDID,BID,Name,Cycle,Epoch,EpochDue,EpochPreDue,FLAGS,EmailList,DurWait,Comment,CreateTS,CreateBy,LastModTime,LastModBy"
 	RRdb.DBFields["TaskListDefinition"] = flds
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
 	RRdb.Prepstmt.GetAllTaskListDefinitions, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM TaskListDefinition WHERE BID=? AND FLAGS & 1 = 0")
@@ -1285,27 +1346,21 @@ func buildPreparedStatements() {
 	Errcheck(err)
 
 	//==========================================
-	// Flow Part
+	// Flow
 	//==========================================
-	flds = "FlowPartID,BID,Flow,FlowID,PartType,Data,CreateTS,CreateBy,LastModTime,LastModBy"
-	RRdb.DBFields["FlowPart"] = flds
-	RRdb.Prepstmt.GetFlowPart, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where FlowPartID=?")
+	flds = "FlowID,BID,FlowType,Data,CreateTS,CreateBy,LastModTime,LastModBy"
+	RRdb.DBFields["Flow"] = flds
+	RRdb.Prepstmt.GetFlow, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM Flow where FlowID=?")
 	Errcheck(err)
-	RRdb.Prepstmt.GetFlowPartByPartType, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where FlowID=? AND PartType=?")
+	RRdb.Prepstmt.GetFlowsByFlowType, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM Flow where FlowType=?")
 	Errcheck(err)
-	RRdb.Prepstmt.GetFlowIDsByUser, err = RRdb.Dbrr.Prepare("SELECT DISTINCT FlowID FROM FlowPart where Flow=? AND CreateBy=?")
-	Errcheck(err)
-	RRdb.Prepstmt.GetFlowPartsByFlow, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where Flow=? AND BID=?")
-	Errcheck(err)
-	RRdb.Prepstmt.GetFlowPartsByFlowID, err = RRdb.Dbrr.Prepare("SELECT " + flds + " FROM FlowPart where FlowID=?")
+	RRdb.Prepstmt.GetFlowIDsByUser, err = RRdb.Dbrr.Prepare("SELECT DISTINCT FlowID FROM Flow where CreateBy=?")
 	Errcheck(err)
 	s1, s2, s3, _, _ = GenSQLInsertAndUpdateStrings(flds)
-	RRdb.Prepstmt.InsertFlowPart, err = RRdb.Dbrr.Prepare("INSERT INTO FlowPart (" + s1 + ") VALUES(" + s2 + ")")
+	RRdb.Prepstmt.InsertFlow, err = RRdb.Dbrr.Prepare("INSERT INTO Flow (" + s1 + ") VALUES(" + s2 + ")")
 	Errcheck(err)
-	RRdb.Prepstmt.UpdateFlowPart, err = RRdb.Dbrr.Prepare("UPDATE FlowPart SET " + s3 + " WHERE FlowPartID=?")
+	RRdb.Prepstmt.UpdateFlowData, err = RRdb.Dbrr.Prepare("UPDATE Flow SET Data = JSON_REPLACE(Data, CONCAT('$.', ?), CAST(? AS JSON)) where FlowID=?")
 	Errcheck(err)
-	RRdb.Prepstmt.DeleteFlowPart, err = RRdb.Dbrr.Prepare("DELETE from FlowPart WHERE FlowPartID=?")
-	Errcheck(err)
-	RRdb.Prepstmt.DeleteFlowPartsByFlowID, err = RRdb.Dbrr.Prepare("DELETE from FlowPart WHERE FlowID=?")
+	RRdb.Prepstmt.DeleteFlow, err = RRdb.Dbrr.Prepare("DELETE from Flow WHERE FlowID=?")
 	Errcheck(err)
 }

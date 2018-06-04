@@ -29,7 +29,7 @@ import (
 func ReportServiceHandler(w http.ResponseWriter, r *http.Request, d *ServiceData) {
 	const funcname = "ReportServiceHandler"
 	var (
-		ui         ReportContext
+		ui         rrpt.ReportContext
 		xbiz       rlib.XBusiness
 		reportname string
 		err        error
@@ -174,7 +174,7 @@ func ReportServiceHandler(w http.ResponseWriter, r *http.Request, d *ServiceData
 // SendWebSvcPage creates an HTML page where the content is simply
 // the contents of ui.ReportContent formatted to be shown as-is in
 // a mono-spaced font.
-func SendWebSvcPage(w http.ResponseWriter, r *http.Request, ui *ReportContext) {
+func SendWebSvcPage(w http.ResponseWriter, r *http.Request, ui *rrpt.ReportContext) {
 	funcname := "SendWebSvcPage"
 	tmpl := "v1rpt.html"
 	t, err := template.New(tmpl).Funcs(RRfuncMap).ParseFiles("./webclient/html/" + tmpl)
@@ -191,7 +191,7 @@ func SendWebSvcPage(w http.ResponseWriter, r *http.Request, ui *ReportContext) {
 	}
 }
 
-func v1ReportHandler(ctx context.Context, reportname string, xbiz *rlib.XBusiness, ui *ReportContext, w http.ResponseWriter, qp *url.Values) {
+func v1ReportHandler(ctx context.Context, reportname string, xbiz *rlib.XBusiness, ui *rrpt.ReportContext, w http.ResponseWriter, qp *url.Values) {
 	const funcname = "v1ReportHandler"
 	rlib.Console("%s: reportname=%s, BID=%d,  d1 = %s, d2 = %s\n", funcname, reportname, xbiz.P.BID, ui.D1.Format(rlib.RRDATEFMT4), ui.D2.Format(rlib.RRDATEFMT4))
 
@@ -224,30 +224,31 @@ func v1ReportHandler(ctx context.Context, reportname string, xbiz *rlib.XBusines
 		{ReportNames: []string{"RPTar", "account rules"}, TableHandler: rrpt.RRARTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTasmrpt", "assessments"}, TableHandler: rrpt.RRAssessmentsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTb", "business"}, TableHandler: rrpt.RRreportBusinessTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
-		{ReportNames: []string{"RPTcoa", "chart of accounts"}, TableHandler: rrpt.RRreportChartOfAccountsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTc", "custom attributes"}, TableHandler: rrpt.RRreportCustomAttributesTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
+		{ReportNames: []string{"RPTcoa", "chart of accounts"}, TableHandler: rrpt.RRreportChartOfAccountsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTcr", "custom attribute refs"}, TableHandler: rrpt.RRreportCustomAttributeRefsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTdelinq", "delinquency"}, TableHandler: rrpt.DelinquencyReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
-		{ReportNames: []string{"RPTdpm", "deposit methods"}, TableHandler: rrpt.RRreportDepositMethodsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTdep", "depositories"}, TableHandler: rrpt.RRreportDepositoryTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
+		{ReportNames: []string{"RPTdpm", "deposit methods"}, TableHandler: rrpt.RRreportDepositMethodsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTgsr", "gsr"}, TableHandler: rrpt.GSRReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTj", "journals"}, TableHandler: rrpt.JournalReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
+		{ReportNames: []string{"RPTpayorstmt", "payor statements"}, TableHandler: rrpt.RRPayorStatement, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTpeople", "people"}, TableHandler: rrpt.RRreportPeopleTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTpmt", "payment types"}, TableHandler: rrpt.RRreportPaymentTypesTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTr", "rentables"}, TableHandler: rrpt.RRreportRentablesTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTra", "rental agreements"}, TableHandler: rrpt.RRreportRentalAgreementsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
+		{ReportNames: []string{"RPTrastmt", "rental agreement statements"}, TableHandler: rrpt.RRRentalAgreementStatements, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTrat", "rental agreement templates"}, TableHandler: rrpt.RRreportRentalAgreementTemplatesTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
-		{ReportNames: []string{"RPTrcptlist", "receipts"}, TableHandler: rrpt.RRReceiptsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
+		{ReportNames: []string{"RPTrcbt", "rentable type counts"}, TableHandler: rrpt.RentableCountByRentableTypeReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTrcpt", "receipt"}, TableHandler: rrpt.RRRcptOnlyReceiptTable, PDFprops: rrpt.ReceiptPDFProps, HTMLTemplate: "receipt.html", NeedsCustomPDFDimension: false, NeedsPDFTitle: false},
 		{ReportNames: []string{"RPTrcpthotel", ""}, TableHandler: rrpt.RRRcptHotelReceiptTable, PDFprops: rrpt.ReceiptPDFProps, HTMLTemplate: "rcpthotel.html", NeedsCustomPDFDimension: false, NeedsPDFTitle: false},
+		{ReportNames: []string{"RPTrcptlist", "receipts"}, TableHandler: rrpt.RRReceiptsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTrr", "rentroll"}, TableHandler: rrpt.RRReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTrt", "rentable types"}, TableHandler: rrpt.RRreportRentableTypesTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
-		{ReportNames: []string{"RPTrcbt", "rentable type counts"}, TableHandler: rrpt.RentableCountByRentableTypeReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTsl", "string lists"}, TableHandler: rrpt.RRreportStringListsTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTt", "people"}, TableHandler: rrpt.RRreportPeopleTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 		{ReportNames: []string{"RPTtb", "trial balance"}, TableHandler: rrpt.LedgerBalanceReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
-		{ReportNames: []string{"RPTpayorstmt", "payor statements"}, TableHandler: rrpt.RRPayorStatement, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
-		{ReportNames: []string{"RPTrastmt", "rental agreement statements"}, TableHandler: rrpt.RRRentalAgreementStatements, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
+		{ReportNames: []string{"RPTtl", "task list"}, TableHandler: rrpt.TaskListReportTable, PDFprops: nil, HTMLTemplate: "", NeedsCustomPDFDimension: true, NeedsPDFTitle: true},
 	}
 
 	// handler for reports which has more than one table
@@ -317,7 +318,7 @@ func v1ReportHandler(ctx context.Context, reportname string, xbiz *rlib.XBusines
 			// custom template if available
 			tfname := tsh.HTMLTemplate
 			if len(tfname) > 0 {
-				bud := getBUDFromBIDList(ri.Bid)
+				bud := rlib.GetBUDFromBIDList(ri.Bid)
 				tfname = "webclient/html/rpt-templates/" + strings.ToUpper(string(bud)) + "/" + tfname
 				err := tbl.SetHTMLTemplate(tfname)
 				if err != nil {
@@ -346,7 +347,7 @@ func v1ReportHandler(ctx context.Context, reportname string, xbiz *rlib.XBusines
 			// rlib.Console("report.go:  tfname = %s\n", tfname)
 			if len(tfname) > 0 {
 				var err error
-				bud := getBUDFromBIDList(ri.Bid)
+				bud := rlib.GetBUDFromBIDList(ri.Bid)
 				tfname = "webclient/html/rpt-templates/" + strings.ToUpper(string(bud)) + "/" + tfname
 
 				// cwd, err := os.Getwd()

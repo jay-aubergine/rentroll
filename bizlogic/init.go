@@ -53,11 +53,14 @@ const (
 	InvalidRentableTypeRefDates     = 29 // invalid rentable type ref dates
 	RentableTypeRefDatesOverlap     = 30 // rentable type ref dates overlapping
 	UnknownRID                      = 31 // Unknown Rentable
-	UnknownRTID                     = 32 // Unknown Rentable Type
-	UnknownRAID                     = 33 // Unknown Rental Agreement
-	UnknownARType                   = 34 // Unknown ARType
-	UnknownTLDID                    = 35 // task list definition does not exist
-	ImproperTLDID                   = 36 // task list definition does not belong to the specified business
+	InvalidRTFlag                   = 32
+	UnknownRTID                     = 33 // Unknown Rentable Type
+	UnknownRAID                     = 34 // Unknown Rental Agreement
+	UnknownARType                   = 35 // Unknown ARType
+	InvalidARFlag                   = 36 // Invalid AR Flag
+	UnknownTLDID                    = 37 // task list definition does not exist
+	ImproperTLDID                   = 38 // task list definition does not belong to the specified business
+	TaskDescrMissingName            = 39 // task descriptor missing name
 )
 
 // InitBizLogic loads the error messages needed for validation errors

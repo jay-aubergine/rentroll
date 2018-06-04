@@ -15,12 +15,12 @@ import (
 //-----------------------------------------------------------------------------
 func CreateAssessmentInstances(item *tws.Item) {
 	tws.ItemWorking(item)
-	now := time.Now().In(rlib.RRdb.Zone)
+	now := time.Now()
 	ctx := context.Background()
 	CreateAsmInstCore(ctx, &now)
 
 	// reschedule for midnight tomorrow...
-	resched := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC).In(rlib.RRdb.Zone)
+	resched := now.AddDate(0, 0, 1)
 	tws.RescheduleItem(item, resched)
 }
 
@@ -29,7 +29,10 @@ func CreateAssessmentInstances(item *tws.Item) {
 //-----------------------------------------------------------------------------
 func CreateAsmInstCore(ctx context.Context, now *time.Time) {
 	expire := now.Add(10 * time.Minute)
-	s := rlib.SessionNew("workerToken", "tws-worker", "tws-session", -1, "", -1, &expire)
+	s := rlib.SessionNew("BotToken-"+rlib.BotReg[rlib.WorkerAsmt].Designator,
+		rlib.BotReg[rlib.WorkerAsmt].Designator,
+		rlib.BotReg[rlib.WorkerAsmt].Designator,
+		rlib.WorkerAsmt, "", -1, &expire)
 	ctx = rlib.SetSessionContextKey(ctx, s)
 
 	// add any new recurring instances for this day...
@@ -37,10 +40,10 @@ func CreateAsmInstCore(ctx context.Context, now *time.Time) {
 	if err != nil {
 		rlib.Ulog("Error with rlib.GetAllBusinesses: %s\n", err.Error())
 	} else {
-		rlib.Console("got businesses: len(m) = %d\n", len(m))
+		// rlib.Console("got businesses: len(m) = %d\n", len(m))
 		d1, d2 := rlib.GetMonthPeriodForDate(now)
 		for i := 0; i < len(m); i++ {
-			rlib.Console("PROCESS JOURNAL ENTRIES FOR BIZ: %s - %s,  %s, %s\n", m[i].Designation, m[i].Name, d1.Format(rlib.RRDATEREPORTFMT), d2.Format(rlib.RRDATEREPORTFMT))
+			// rlib.Console("PROCESS JOURNAL ENTRIES FOR BIZ: %s - %s,  %s, %s\n", m[i].Designation, m[i].Name, d1.Format(rlib.RRDATEREPORTFMT), d2.Format(rlib.RRDATEREPORTFMT))
 			var xbiz rlib.XBusiness
 			err = rlib.GetXBusiness(ctx, m[i].BID, &xbiz)
 			if err != nil {

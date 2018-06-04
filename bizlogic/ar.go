@@ -6,6 +6,17 @@ import (
 	"rentroll/rlib"
 )
 
+// ARFLAGS account rules FLAGS
+var ARFLAGS = rlib.Str2Int64Map{
+	"ApplyFundsToReceiveAccts": 0,
+	"AutoPopulateToNewRA":      1,
+	"RAIDRequired":             2,
+	"SubARIDsOnly":             3,
+	"IsRentASM":                4,
+	"IsSecDepASM":              5,
+	"IsNonRecurCharge":         6,
+}
+
 // ARType user defined type of account rule
 type ARType int64
 
@@ -42,6 +53,27 @@ func (ar ARType) String() string {
 	return names[ar]
 }
 
+// IsValidARFlag checks whether FLAGS value is valid or not
+func IsValidARFlag(FLAGS uint64) bool {
+
+	maxFLAGVal := 0
+	for _, v := range ARFLAGS {
+		maxFLAGVal += 1 << uint(v)
+	}
+
+	// NOTE: if no flag is set then 0 can be the case here
+	if FLAGS < 0 || FLAGS > uint64(maxFLAGVal) {
+		return false
+	}
+
+	// if IsRentASM and IsSecDepASM both are set
+	// both should be mutually exclusive
+	if FLAGS&0x20 != 0 && FLAGS&0x10 != 0 {
+		return false
+	}
+	return true
+}
+
 // ValidateAcctRule ensures that the data in the supplied
 // account rule is valid. It returns descriptive errors for data
 // that is not valid.
@@ -59,6 +91,13 @@ func ValidateAcctRule(ctx context.Context, a *rlib.AR) []BizError {
 		rlib.Console("*** ERROR *** invalid ARType: %d for a.ARID = %d\n", a.ARID)
 		s := fmt.Sprintf(BizErrors[UnknownARType].Message, a.ARType, a.ARID)
 		b := BizError{Errno: UnknownARType, Message: s}
+		e = append(e, b)
+	}
+
+	if !IsValidARFlag(a.FLAGS) {
+		rlib.Console("*** ERROR *** invalid FLAGS: %d for a.ARID = %d\n", a.FLAGS, a.ARID)
+		s := fmt.Sprintf(BizErrors[InvalidARFlag].Message, a.FLAGS, a.ARID)
+		b := BizError{Errno: InvalidARFlag, Message: s}
 		e = append(e, b)
 	}
 

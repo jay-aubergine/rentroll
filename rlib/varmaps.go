@@ -59,8 +59,6 @@ var assignmap = []struct {
 	{a: "int", b: "XJSONAsmFLAGS", mapper: MigrateInt64ToString, valmap: &AsmFLAGS},
 	{a: "XJSONRcptFLAGS", b: "int", mapper: MigrateStrToInt64, valmap: &RcptFLAGS},
 	{a: "int", b: "XJSONRcptFLAGS", mapper: MigrateInt64ToString, valmap: &RcptFLAGS},
-	{a: "XJSONRtActiveFLAGS", b: "int", mapper: MigrateStrToInt64, valmap: &RtActiveFLAGS},
-	{a: "int", b: "XJSONRtActiveFLAGS", mapper: MigrateInt64ToString, valmap: &RtActiveFLAGS},
 }
 
 var xjson = string("XJSON")
@@ -85,15 +83,15 @@ type XJSONCycleFreq string
 
 // CycleFreqMap is the mapping
 var CycleFreqMap = Str2Int64Map{
-	"Norecur":   int64(CYCLENORECUR),
-	"Secondly":  int64(CYCLESECONDLY),
-	"Minutely":  int64(CYCLEMINUTELY),
-	"Hourly":    int64(CYCLEHOURLY),
-	"Daily":     int64(CYCLEDAILY),
-	"Weekly":    int64(CYCLEWEEKLY),
-	"Monthly":   int64(CYCLEMONTHLY),
-	"Quarterly": int64(CYCLEQUARTERLY),
-	"Yearly":    int64(CYCLEYEARLY),
+	"Norecur":   int64(RECURNONE),
+	"Secondly":  int64(RECURSECONDLY),
+	"Minutely":  int64(RECURMINUTELY),
+	"Hourly":    int64(RECURHOURLY),
+	"Daily":     int64(RECURDAILY),
+	"Weekly":    int64(RECURWEEKLY),
+	"Monthly":   int64(RECURMONTHLY),
+	"Quarterly": int64(RECURQUARTERLY),
+	"Yearly":    int64(RECURYEARLY),
 }
 
 // XJSONAssignmentTime is a UI converter: backend int64, Front End string
@@ -241,13 +239,4 @@ var RcptFLAGS = Str2Int64Map{
 	"PARTIALALLOCATED": int64(RCPTPARTIALALLOCATED),
 	"FULLYALLOCATED":   int64(RCPTFULLYALLOCATED),
 	"REVERSED":         int64(RCPTREVERSED),
-}
-
-// XJSONRtActiveFLAGS is a UI converter: back-end int, UI: string
-type XJSONRtActiveFLAGS string
-
-// RtActiveFLAGS is the mapping of FLAGS for active/inactive indication
-var RtActiveFLAGS = Str2Int64Map{
-	"Yes": int64(RTACTIVE),
-	"No":  int64(RTINACTIVE),
 }

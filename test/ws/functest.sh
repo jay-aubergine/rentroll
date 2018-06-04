@@ -42,11 +42,11 @@ echo "request=%7B%22cmd%22%3A%22get%22%2C%22recid%22%3A0%2C%22name%22%3A%22accou
 dojsonPOST "http://localhost:8270/v1/account/2/97" "request" "ws5" "WebService--ChartOfAccounts-detail"
 
 # Create new Account
-echo "request%3D%7B%22cmd%22%3A%22save%22%2C%22recid%22%3A0%2C%22name%22%3A%22%22%2C%22record%22%3A%7B%22LID%22%3A0%2C%22BID%22%3A2%2C%22RAID%22%3A0%2C%22TCID%22%3A0%2C%22GLNumber%22%3A%22123456789%22%2C%22Name%22%3A%22SmokeTest%20GLAccount%22%2C%22AcctType%22%3A%22%22%2C%22Description%22%3A%22%22%2C%22LastModTime%22%3A%221%2F1%2F1900%22%2C%22LastModBy%22%3A0%2C%22BUD%22%3A%22%22%2C%22PLID%22%3A0%2C%22Status%22%3A0%2C%22Type%22%3A0%2C%22AllowPost%22%3A0%2C%22ManageToBudget%22%3A0%7D%7D" > request
+echo "request%3D%7B%22cmd%22%3A%22save%22%2C%22recid%22%3A0%2C%22name%22%3A%22%22%2C%22record%22%3A%7B%22LID%22%3A0%2C%22BID%22%3A2%2C%22RAID%22%3A0%2C%22TCID%22%3A0%2C%22GLNumber%22%3A%22123456789%22%2C%22Name%22%3A%22SmokeTest%20GLAccount%22%2C%22AcctType%22%3A%22%22%2C%22Description%22%3A%22%22%2C%22LastModTime%22%3A%221%2F1%2F1900%22%2C%22LastModBy%22%3A0%2C%22BUD%22%3A%22%22%2C%22PLID%22%3A0%2C%22Status%22%3A0%2C%22Type%22%3A0%2C%22AllowPost%22%3A0%2C%22ManageToBudget%22%3Afalse%7D%7D" > request
 dojsonPOST "http://localhost:8270/v1/account/2/0" "request" "ws6"  "WebService--CreateGLAccount"
 
 # Update Account details
-echo "request%3D%7B%22cmd%22%3A%22save%22%2C%22recid%22%3A0%2C%22name%22%3A%22%22%2C%22record%22%3A%7B%22LID%22%3A108%2C%22BID%22%3A2%2C%22RAID%22%3A0%2C%22TCID%22%3A0%2C%22GLNumber%22%3A%229876543210%22%2C%22Name%22%3A%22SmokeTest%20GLAccount%22%2C%22AcctType%22%3A%22%22%2C%22Description%22%3A%22Update%20this%20Account%20(Smoke%20Test)%22%2C%22LastModTime%22%3A%221%2F1%2F1900%22%2C%22LastModBy%22%3A0%2C%22BUD%22%3A%22%22%2C%22PLID%22%3A0%2C%22Status%22%3A0%2C%22Type%22%3A0%2C%22AllowPost%22%3A1%2C%22ManageToBudget%22%3A0%7D%7D" > request
+echo "request%3D%7B%22cmd%22%3A%22save%22%2C%22recid%22%3A0%2C%22name%22%3A%22%22%2C%22record%22%3A%7B%22LID%22%3A108%2C%22BID%22%3A2%2C%22RAID%22%3A0%2C%22TCID%22%3A0%2C%22GLNumber%22%3A%229876543210%22%2C%22Name%22%3A%22SmokeTest%20GLAccount%22%2C%22AcctType%22%3A%22%22%2C%22Description%22%3A%22Update%20this%20Account%20(Smoke%20Test)%22%2C%22LastModTime%22%3A%221%2F1%2F1900%22%2C%22LastModBy%22%3A0%2C%22BUD%22%3A%22%22%2C%22PLID%22%3A0%2C%22Status%22%3A0%2C%22Type%22%3A0%2C%22AllowPost%22%3A1%2C%22ManageToBudget%22%3Afalse%7D%7D" > request
 dojsonPOST "http://localhost:8270/v1/account/2/108" "request" "ws7"  "WebService--UpdateGLAccount"
 
 # Delete Account
@@ -200,6 +200,18 @@ dojsonPOST "http://localhost:8270/v1/rentablestatus/1/1129" "request" "ws45" "We
 # delete rentable type ref recently created (1129)
 echo "%7B%22cmd%22%3A%22delete%22%2C%22RTRIDList%22%3A%5B1129%5D%7D" > request
 dojsonPOST "http://localhost:8270/v1/rentabletyperef/1/1129" "request" "ws46" "WebService--DeleteRentableTypeRef(1129)"
+
+# # post account rule with data to create test one
+# echo "%7B%22cmd%22%3A%22save%22%2C%22recid%22%3A0%2C%22name%22%3A%22arsForm%22%2C%22record%22%3A%7B%22recid%22%3A0%2C%22BID%22%3A1%2C%22BUD%22%3A%22REX%22%2C%22ARID%22%3A0%2C%22ARType%22%3A0%2C%22DebitLID%22%3A72%2C%22CreditLID%22%3A71%2C%22Name%22%3A%22test%22%2C%22Description%22%3A%22this+is+test+account+rule%22%2C%22DtStart%22%3A%221%2F1%2F2018%22%2C%22DtStop%22%3A%2212%2F31%2F9999%22%2C%22PriorToRAStart%22%3Atrue%2C%22PriorToRAStop%22%3Atrue%2C%22ApplyRcvAccts%22%3Afalse%2C%22RAIDrqd%22%3Afalse%2C%22AutoPopulateToNewRA%22%3Atrue%2C%22DefaultAmount%22%3A1%7D%7D" > request
+# dojsonPOST "http://localhost:8270/v1/ar/1/0" "request" "ws47" "WebService--CreateAR"
+
+# # get account rule with data
+# echo "%7B%22cmd%22%3A%22get%22%2C%22recid%22%3A0%2C%22name%22%3A%22arsForm%22%7D" > request
+# dojsonPOST "http://localhost:8270/v1/ar/1/13" "request" "ws48" "WebService--GetAR"
+
+# # get account rules by flags
+# echo "%7B%22type%22%3A%22FLAGS%22%2C%22FLAGS%22%3A0%7D" > request
+# dojsonPOST "http://localhost:8270/v1/arslist/1/" "request" "ws49" "WebService--GetARsByFLAGS"
 
 stopRentRollServer
 echo "RENTROLL SERVER STOPPED"
