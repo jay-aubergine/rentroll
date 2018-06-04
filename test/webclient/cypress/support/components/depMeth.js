@@ -6,7 +6,7 @@ const FORM = "depmethForm";
 const MODULE = "depmeth";
 
 // Below configurations are in use while performing tests via roller_spec.js for AIR Roller application
-// For Module: Deposit Methods
+// For Module: Deposit accounts
 export let conf = {
     grid: GRID,
     form: FORM,
@@ -20,5 +20,6 @@ export let conf = {
     buttonNamesInDetailForm: ["save", "saveadd", "delete"],
     skipColumns: [],
     skipFields: [],
-    primaryId: "DPMID"
+    primaryId: "DPMID",
+    fixtureFile: "depositMethods.json"
 };

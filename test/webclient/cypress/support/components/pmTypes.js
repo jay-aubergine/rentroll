@@ -6,7 +6,7 @@ const FORM = "pmtForm";
 const MODULE = "pmts";
 
 // Below configurations are in use while performing tests via roller_spec.js for AIR Roller application
-// For Module: Payment Types
+// For Module: Charts of Account
 export let conf = {
     grid: GRID,
     form: FORM,
@@ -20,5 +20,6 @@ export let conf = {
     buttonNamesInDetailForm: ["save", "saveadd", "delete"],
     skipColumns: [],
     skipFields: [],
-    primaryId: "PMTID"
+    primaryId: "PMTID",
+    fixtureFile: "paymentTypes.json"
 };
