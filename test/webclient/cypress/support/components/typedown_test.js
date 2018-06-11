@@ -1,7 +1,7 @@
 "use strict";
 
 const GRID = "newrentalagrsGrid";
-const SIDEBAR_ID = "newrentalagrs";
+const SIDEBAR_ID = "applicants";
 const FORM = "accountForm";
 const MODULE = "account";
 
