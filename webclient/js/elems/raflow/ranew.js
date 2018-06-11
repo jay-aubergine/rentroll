@@ -71,13 +71,13 @@ window.setToNewRAForm = function (bid, FlowID) {
     });
 };
 
-window.buildNewRAElements = function() {
+window.buildRAApplicantElements = function() {
     // ------------------------------------------------------
-    // rental agreement grid
+    // applicants grid
     // ------------------------------------------------------
     $().w2grid({
-        name:               'newrentalagrsGrid',
-        multiSelect:        false,
+        name: 'applicantsGrid',
+        multiSelect: false,
         show: {
             toolbar: true,
             footer: true,
@@ -95,34 +95,15 @@ window.buildNewRAElements = function() {
             toolbarColumns: false,
         },
         columns: [
-            {
-                field:      'recid',
-                hidden:     true,
-                caption:    'recid',
-                size:       '40px',
-                sortable:   true
-            },
-            {
-                field:      'BID',
-                caption:    'BID',
-                hidden:     true,
-            },
-            {
-                field:      'BUD',
-                caption:    'BUD',
-                hidden:     true,
-            },
-            {
-                field:      'FlowID',
-                caption:    'Flow ID',
-                size:       '100%',
-                sortable:   true
-            },
+            {field: 'recid',     caption: 'recid',   size: '40px',   hidden: true, sortable:   true },
+            {field: 'BID',       caption: 'BID',                     hidden: true,                  },
+            {field: 'BUD',       caption: 'BUD',                     hidden: true,                  },
+            {field: 'FlowID',    caption: 'Flow ID', size: '50px',                 sortable:   true },
+            {field: 'UserRefNo', caption: 'Ref No',  size: '200px',                sortable:   true },
         ],
         onRequest: function(event) {
             event.postData.cmd = "getAllFlows";
             event.postData.FlowType = "RA";
-            // console.log(event.postData);
         },
         onRefresh: function(event) {
             event.onComplete = function() {
@@ -225,7 +206,7 @@ window.buildNewRAElements = function() {
     });
 
     // add date navigation toolbar for new rental agreement form
-    addDateNavToToolbar('newrentalagrs');
+    addDateNavToToolbar('applicants');
 
     //------------------------------------------------------------------------
     //          Rental Agreement Details
@@ -250,7 +231,7 @@ window.buildNewRAElements = function() {
                             var no_callBack = function() { return false; },
                                 yes_callBack = function() {
                                     w2ui.toplayout.hide('right',true);
-                                    w2ui.newrentalagrsGrid.render();
+                                    w2ui.applicantsGrid.render();
                                     app.raflow.activeFlowID = "";
                                 };
                             form_dirty_alert(yes_callBack, no_callBack);

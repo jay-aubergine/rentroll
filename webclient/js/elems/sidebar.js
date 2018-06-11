@@ -29,7 +29,8 @@ window.buildSidebar = function(flag) {
                 },
                 { id: 'rentagr', text: plural(app.sRentalAgreement), img: 'icon-folder', expanded: true, group: true,
                     nodes: [
-                            { id: 'newrentalagrs',  text: plural(app.sRentalAgreement) + " (*new)",    icon: 'fas fa-certificate', hint: 'Rental Agreements' },
+                            { id: 'applicants',   text: plural(app.sApplicant),          icon: 'fas fa-certificate', hint: 'Rental Agreements' },
+                            { id: 'ra2flow',      text: plural(app.sRentalAgreement) + "2", icon: 'fas fa-certificate', hint: 'Rental Agreements' },
                             { id: 'rentalagrs',   text: plural(app.sRentalAgreement),    icon: 'fas fa-certificate', hint: 'Rental Agreements' },
                             { id: 'transactants', text: plural(app.sTransactant),        icon: 'fas fa-users' },
                             // { id: 'assignrnt',    text: 'Assign A ' + app.sRentable,     icon: 'far fa-check-square' },
@@ -41,9 +42,9 @@ window.buildSidebar = function(flag) {
                 { id: 'collections', text: 'Collections', img: 'icon-folder', expanded: true, group: true,
                     nodes: [
                             { id: 'rr',           text: 'Rent Roll',                     icon: 'fas fa-chart-line',   hint: 'Rent Roll' },
-                            // { id: 'dlnq',         text: 'Delinquency Analysis',          icon: 'fas fa-chart-pie',   hint: 'Delinquency Analysis' },
                             { id: 'stmt',         text: 'RA Statements',                 icon: 'fas fa-clipboard', hint: 'Rental Agreement Statements' },
                             { id: 'payorstmt',    text: 'Payor Statements',              icon: 'far fa-clipboard', hint: 'Payor Statements' },
+                            // { id: 'dlnq',         text: 'Delinquency Analysis',          icon: 'fas fa-chart-pie',   hint: 'Delinquency Analysis' },
                             // { id: 'prepnotice',   text: 'Prepare Notices',               icon: 'far fa-file-alt', hint: 'Prepare Notices' },
                     ]
                 },
@@ -177,9 +178,10 @@ window.buildSidebar = function(flag) {
                         case 'tls':
                         case 'tlds':
                         case 'rr':
+                        case 'ra2flow':
                             switchToGrid(target);
                             break;
-                        case 'newrentalagrs':
+                        case 'applicants':
                             switchToGrid(target, "flow");
                             break;
                         case 'closePeriod':

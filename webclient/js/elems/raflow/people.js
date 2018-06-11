@@ -9,8 +9,8 @@
     setRABGInfoFormHeader, showHideRABGInfoFormFields,
     setNotRequiredFields, getRATransanctantDetail, getRAPeopleGridRecord,
     updateRABGInfoFormCheckboxes, getRABGInfoFormInitRecord, loadRABGInfoForm, ReassignPeopleGridRecords,
-    manageBGInfoFormFields, setTrasanctantFields, setTransactDefaultRole, findTransactantIndexByTCIDRecidInPeopleData,
-    addDummyBackgroundInfo, updatePeopleData
+    manageBGInfoFormFields, setTrasanctantFields, setTransactDefaultRole,
+    addDummyBackgroundInfo, savePeopleCompData, getPeopleLocalData, setPeopleLocalData
 */
 
 "use strict";
@@ -113,7 +113,7 @@ window.loadRAPeopleForm = function () {
                     hidden: true
                 },
                 {
-                    field: 'TMPID',
+                    field: 'TMPTCID',
                     hidden: true
                 },
                 {
@@ -124,6 +124,7 @@ window.loadRAPeopleForm = function () {
                     field: 'FullName',
                     caption: 'Name',
                     size: '100%',
+                    style: 'text-align: left;',
                     render: function (record) {
                         if (!record.IsCompany) {
                             return getFullName(record);
@@ -174,10 +175,6 @@ window.loadRAPeopleForm = function () {
             ],
             onClick: function (event) {
                 event.onComplete = function () {
-
-                    var raBGInfoGridRecord = w2ui.RAPeopleGrid.get(event.recid); // record from the w2ui grid
-                    var form = w2ui.RABGInfoForm;
-
                     var yes_args = [this, event.recid],
                         no_args = [this],
                         no_callBack = function (grid) {
@@ -185,29 +182,26 @@ window.loadRAPeopleForm = function () {
                             return false;
                         },
                         yes_callBack = function (grid, recid) {
+                            var form = w2ui.RABGInfoForm;
+
                             app.last.grid_sel_recid = parseInt(recid);
 
                             // keep highlighting current row in any case
                             grid.select(app.last.grid_sel_recid);
 
+                            var raBGInfoGridRecord = grid.get(event.recid); // record from the w2ui grid
+
+                            // show slider content in w2ui comp
                             showSliderContentW2UIComp(form, RACompConfig.people.sliderWidth);
 
+                            // show/hide list of fields based on role
                             manageBGInfoFormFields(raBGInfoGridRecord);
 
-                            var bgInfoRecords = getRAFlowCompData("people", app.raflow.activeFlowID) || [];
+                            form.record = getPeopleLocalData(raBGInfoGridRecord.TMPTCID);
+                            form.record.recid = raBGInfoGridRecord.recid;
 
-                            // Operation related RABGInfoForm
-                            for(var recordIndex = 0; recordIndex < bgInfoRecords.length; recordIndex++){
-                                if(bgInfoRecords[recordIndex].TCID === raBGInfoGridRecord.TCID && bgInfoRecords[recordIndex].recid === raBGInfoGridRecord.recid){
-                                    // Set form record from the client side
-                                    form.record = bgInfoRecords[recordIndex];
-
-                                    // Set the form title
-                                    setRABGInfoFormHeader(form.record);
-
-                                    break;
-                                }
-                            }
+                            // Set the form title
+                            setRABGInfoFormHeader(form.record);
 
                             form.refresh(); // need to refresh for form changes
                         };
@@ -236,13 +230,7 @@ window.loadRAPeopleForm = function () {
                 onClick: function (event) {
                     switch (event.target) {
                         case 'btnClose':
-                            var form = w2ui.RABGInfoForm;
-                            var record = getFormSubmitData(form.record);
-
-                            updatePeopleData(record);
-
                             hideSliderContent();
-
                             break;
                         case 'addInfo':
                             addDummyBackgroundInfo();
@@ -251,74 +239,79 @@ window.loadRAPeopleForm = function () {
                 }
             },
             fields: [
-                {name: 'BID', type: 'int', required: true, html: {caption: 'BID', page: 0, column: 0}},
-                {name: 'TMPID', type: 'int', required: true},
-                {name: 'TCID', type: 'int', required: true, html: {caption: 'TCID', page: 0, column: 0}},
-                {name: 'IsRenter', type: 'checkbox', required: false}, // will be responsible for paying rent
-                {name: 'IsOccupant', type: 'checkbox', required: false}, // will reside in and/or use the items rented
-                {name: 'IsGuarantor', type: 'checkbox', required: false}, // responsible for making sure all rent is paid
-                {name: 'FirstName', type: 'text', required: false},
-                {name: 'MiddleName', type: 'text', required: false},
-                {name: 'LastName', type: 'text', required: false},
-                {name: 'IsCompany', type: 'checkbox', required: true},
-                {name: 'BirthDate', type: 'date', required: false}, // Date of births of applicants
-                {name: 'SSN', type: 'text', required: false}, // Social security number of applicants
-                {name: 'DriverLicNo', type: 'text'}, // Driving licence number of applicants
-                {name: 'TelephoneNo', type: 'text', required: false}, // Telephone no of applicants
-                {name: 'EmailAddress', type: 'email', required: false}, // Email Address of applicants
-                {name: 'CurrentAddress', type: 'text', required: false}, // Current Address
-                {name: 'CurrentLandLordName', type: 'text', required: false}, // Current landlord's name
-                {name: 'CurrentLandLordPhoneNo', type: 'text', required: false}, // Current landlord's phone number
-                {name: 'CurrentLengthOfResidency', type: 'int', required: false}, // Length of residency at current address
-                {name: 'CurrentReasonForMoving', type: 'text', required: false}, // Reason of moving from current address
-                {name: 'PriorAddress', type: 'text'}, // Prior Address
-                {name: 'PriorLandLordName', type: 'text'}, // Prior landlord's name
-                {name: 'PriorLandLordPhoneNo', type: 'text'}, // Prior landlord's phone number
-                {name: 'PriorLengthOfResidency', type: 'int'}, // Length of residency at Prior address
-                {name: 'PriorReasonForMoving', type: 'text'}, // Reason of moving from Prior address
-                {name: 'Evicted', type: 'checkbox', required: false}, // have you ever been Evicted
-		        {name: 'EvictedDes', type: 'text', required: false},
-                {name: 'Convicted', type: 'checkbox', required: false}, // have you ever been Arrested or convicted of a crime
-		        {name: 'ConvictedDes', type: 'text', required: false},
-                {name: 'Bankruptcy', type: 'checkbox', required: false}, // have you ever been Declared Bankruptcy
-		        {name: 'BankruptcyDes', type: 'text', required: false},
-                {name: 'Employer', type: 'text', required: false},
-                {name: 'Phone', type: 'text', required: false},
-                {name: 'Address', type: 'text', required: false},
-                {name: 'Address2', type: 'text', required: false},
-                {name: 'City', type: 'text', required: false},
-                {name: 'State', type: 'list', options: {items: app.usStateAbbr}, required: false},
-                {name: 'PostalCode', type: 'text', required: false},
-                {name: 'Country', type: 'text', required: false},
-                {name: 'Position', type: 'text', required: false},
-                {name: 'GrossWages', type: 'money', required: false},
-                {name: 'Comment', type: 'text'}, // In an effort to accommodate you, please advise us of any special needs
-                {name: 'EmergencyContactName', type: 'text', required: false}, // Name of emergency contact
-                {name: 'EmergencyContactPhone', type: 'text', required: false}, // Phone number of emergency contact
-                {name: 'EmergencyContactAddress', type: 'text', required: false} // Address of emergency contact
+                {name: 'recid',                     type: 'int',        required: true },
+                {name: 'BID',                       type: 'int',        required: true,     html: {caption: 'BID', page: 0, column: 0}},
+                {name: 'TMPTCID',                   type: 'int',        required: true },
+                {name: 'TCID',                      type: 'int',        required: true,     html: {caption: 'TCID', page: 0, column: 0}},
+                {name: 'IsRenter',                  type: 'checkbox',   required: false },  // will be responsible for paying rent
+                {name: 'IsOccupant',                type: 'checkbox',   required: false },  // will reside in and/or use the items rented
+                {name: 'IsGuarantor',               type: 'checkbox',   required: false },  // responsible for making sure all rent is paid
+                {name: 'FirstName',                 type: 'text',       required: false },
+                {name: 'MiddleName',                type: 'text',       required: false },
+                {name: 'LastName',                  type: 'text',       required: false },
+                {name: 'IsCompany',                 type: 'checkbox',   required: true },
+                {name: 'BirthDate',                 type: 'date',       required: false },  // Date of births of applicants
+                {name: 'SSN',                       type: 'text',       required: false },  // Social security number of applicants
+                {name: 'DriverLicNo',               type: 'text'},                          // Driving licence number of applicants
+                {name: 'TelephoneNo',               type: 'text',       required: false },  // Telephone no of applicants
+                {name: 'EmailAddress',              type: 'email',      required: false },  // Email Address of applicants
+                {name: 'CurrentAddress',            type: 'text',       required: false },  // Current Address
+                {name: 'CurrentLandLordName',       type: 'text',       required: false },  // Current landlord's name
+                {name: 'CurrentLandLordPhoneNo',    type: 'text',       required: false },  // Current landlord's phone number
+                {name: 'CurrentLengthOfResidency',  type: 'int',        required: false },  // Length of residency at current address
+                {name: 'CurrentReasonForMoving',    type: 'text',       required: false },  // Reason of moving from current address
+                {name: 'PriorAddress',              type: 'text'},                          // Prior Address
+                {name: 'PriorLandLordName',         type: 'text'},                          // Prior landlord's name
+                {name: 'PriorLandLordPhoneNo',      type: 'text'},                          // Prior landlord's phone number
+                {name: 'PriorLengthOfResidency',    type: 'int'},                           // Length of residency at Prior address
+                {name: 'PriorReasonForMoving',      type: 'text'},                          // Reason of moving from Prior address
+                {name: 'Evicted',                   type: 'checkbox',   required: false },  // have you ever been Evicted
+                {name: 'EvictedDes',                type: 'text',       required: false },
+                {name: 'Convicted',                 type: 'checkbox',   required: false },  // have you ever been Arrested or convicted of a crime
+                {name: 'ConvictedDes',              type: 'text',       required: false },
+                {name: 'Bankruptcy',                type: 'checkbox',   required: false },  // have you ever been Declared Bankruptcy
+                {name: 'BankruptcyDes',             type: 'text',       required: false },
+                {name: 'Employer',                  type: 'text',       required: false },
+                {name: 'Phone',                     type: 'text',       required: false },
+                {name: 'Address',                   type: 'text',       required: false },
+                {name: 'Address2',                  type: 'text',       required: false },
+                {name: 'City',                      type: 'text',       required: false },
+                {name: 'State',                     type: 'list',       required: false,    options: {items: app.usStateAbbr}, },
+                {name: 'PostalCode',                type: 'text',       required: false },
+                {name: 'Country',                   type: 'text',       required: false },
+                {name: 'Position',                  type: 'text',       required: false },
+                {name: 'GrossWages',                type: 'money',      required: false },
+                {name: 'Comment',                   type: 'text'},                          // In an effort to accommodate you, please advise us of any special needs
+                {name: 'EmergencyContactName',      type: 'text',       required: false },  // Name of emergency contact
+                {name: 'EmergencyContactPhone',     type: 'text',       required: false },  // Phone number of emergency contact
+                {name: 'EmergencyContactAddress',   type: 'text',       required: false }   // Address of emergency contact
             ],
             actions: {
                 save: function () {
-                    var form = this;
+                    var form = this,
+                        TMPTCID = form.record.TMPTCID;
 
                     var errors = form.validate();
                     if (errors.length > 0) return;
 
-                    var record = getFormSubmitData(form.record);
+                    var peopleData = getFormSubmitData(form.record, true);
 
                     // If transanctant role isn't selected than display error.
-                    if(!(record.IsRenter || record.IsOccupant || record.IsGuarantor)){
+                    if(!(peopleData.IsRenter || peopleData.IsOccupant || peopleData.IsGuarantor)){
                         form.message("Please select transanctant role.");
                         return;
                     }
 
-                    var bgInfoRecords = updatePeopleData(record);
+                    // Convert integer to bool checkboxes fields
+                    updateRABGInfoFormCheckboxes(peopleData);
+
+                    setPeopleLocalData(TMPTCID, peopleData);
 
                     // clean dirty flag of form
                     app.form_is_dirty = false;
 
                     // save this records in json Data
-                    saveActiveCompData(bgInfoRecords, "people")
+                    savePeopleCompData()
                     .done(function (data) {
                         if (data.status === 'success') {
 
@@ -339,15 +332,12 @@ window.loadRAPeopleForm = function () {
                 },
                 delete: function () {
                     var form = this;
-                    var tcidIndex = findTransactantIndexByTCIDRecidInPeopleData(form.record.TCID, form.record.recid);
+					// get local data from TMPPETID
+					var compData = getRAFlowCompData("people", app.raflow.activeFlowID) || [];
+					var itemIndex = getPeopleLocalData(form.record.TMPTCID, true);
+					compData.splice(itemIndex, 1);
 
-                    var record = getFormSubmitData(form.record);
-                    var bgInfoRecords = updatePeopleData(record);
-
-                    // delete record with index `tcidIndex`
-                    bgInfoRecords.splice(tcidIndex, 1);
-
-                    saveActiveCompData(bgInfoRecords, "people")
+                    savePeopleCompData()
                     .done(function (data) {
                         if (data.status === 'success') {
 
@@ -372,12 +362,9 @@ window.loadRAPeopleForm = function () {
             },
             onChange: function (event) {
                 event.onComplete = function () {
-
-					$("#EvictedDes").prop("disabled", !this.record.Evicted);
-
-					$("#ConvictedDes").prop("disabled", !this.record.Convicted);
-
-					$("#BankruptcyDes").prop("disabled", !this.record.Bankruptcy);
+                    $("#EvictedDes").prop("disabled", !this.record.Evicted);
+                    $("#ConvictedDes").prop("disabled", !this.record.Convicted);
+                    $("#BankruptcyDes").prop("disabled", !this.record.Bankruptcy);
 
                     manageBGInfoFormFields(this.record);
 
@@ -395,20 +382,19 @@ window.loadRAPeopleForm = function () {
             },
             onRefresh: function (event) {
                 var form = this;
+                event.onComplete = function() {
+                    // hide delete button if it is NewRecord
+                    var isNewRecord = (w2ui.RAPeopleGrid.get(form.record.recid, true) === null);
+                    if (isNewRecord) {
+                        $(form.box).find("button[name=delete]").addClass("hidden");
+                    } else {
+                        $(form.box).find("button[name=delete]").removeClass("hidden");
+                    }
 
-                // hide delete button if it is NewRecord
-                var isNewRecord = (w2ui.RAPeopleGrid.get(form.record.recid, true) === null);
-                if (isNewRecord) {
-                    $(form.box).find("button[name=delete]").addClass("hidden");
-                } else {
-                    $(form.box).find("button[name=delete]").removeClass("hidden");
-                }
-
-				$("#EvictedDes").prop("disabled", !this.record.Evicted);
-
-				$("#ConvictedDes").prop("disabled", !this.record.Convicted);
-
-				$("#BankruptcyDes").prop("disabled", !this.record.Bankruptcy);
+                    $("#EvictedDes").prop("disabled", !this.record.Evicted);
+                    $("#ConvictedDes").prop("disabled", !this.record.Convicted);
+                    $("#BankruptcyDes").prop("disabled", !this.record.Bankruptcy);
+                };
             }
         });
     }
@@ -521,7 +507,7 @@ window.getRABGInfoFormInitRecord = function (BID, TCID, RECID) {
 
     return {
         recid: RECID,
-        TMPID: 0,
+        TMPTCID: 0,
         TCID: TCID,
         BID: BID,
         IsRenter: false,
@@ -547,11 +533,11 @@ window.getRABGInfoFormInitRecord = function (BID, TCID, RECID) {
         PriorLengthOfResidency: 0,
         PriorReasonForMoving: "",
         Evicted: false,
-		EvictedDes: "",
+        EvictedDes: "",
         Convicted: false,
-		ConvictedDes: "",
+        ConvictedDes: "",
         Bankruptcy: false,
-		BankruptcyDes: "",
+        BankruptcyDes: "",
         Employer: "",
         Phone: "",
         Address: "",
@@ -688,7 +674,7 @@ window.manageBGInfoFormFields = function (record) {
 
     // Display/Required field based on transanctant type
     var haveToHide = record.IsOccupant && !record.IsRenter && !record.IsGuarantor; // true: hide fields, false: show fields
-	// hide/show fields
+    // hide/show fields
     showHideRABGInfoFormFields(listOfHiddenFields, haveToHide);
 };
 
@@ -711,22 +697,6 @@ window.findTransactantIndexByTCIDInPeopleData = function (TCID) {
             }
         });
     }
-    return index;
-};
-
-window.findTransactantIndexByTCIDRecidInPeopleData = function (TCID, recid) {
-    var index = -1;
-
-    var compData = getRAFlowCompData("people", app.raflow.activeFlowID) || [];
-    if (compData) {
-        compData.forEach(function (transactantRec, i) {
-            if (transactantRec.TCID === TCID && transactantRec.recid === recid) {
-                index = i;
-                return false;
-            }
-        });
-    }
-
     return index;
 };
 
@@ -797,28 +767,53 @@ window.addDummyBackgroundInfo = function () {
     form.refresh();
 };
 
-window.updatePeopleData = function (record) {
+//------------------------------------------------------------------------------
+// savePetsCompData - saves the data on server side
+//------------------------------------------------------------------------------
+window.savePeopleCompData = function() {
+	var compData = getRAFlowCompData("people", app.raflow.activeFlowID);
+	return saveActiveCompData(compData, "people");
+};
 
-    var bgInfoRecords = getRAFlowCompData("people", app.raflow.activeFlowID) || [];
+//-----------------------------------------------------------------------------
+// getPeopleLocalData - returns the clone of people data for requested TMPTCID
+//-----------------------------------------------------------------------------
+window.getPeopleLocalData = function(TMPTCID, returnIndex) {
+	var cloneData = {};
+	var foundIndex = -1;
+	var compData = getRAFlowCompData("people", app.raflow.activeFlowID) || [];
+	compData.forEach(function(item, index) {
+		if (item.TMPTCID === TMPTCID) {
+			if (returnIndex) {
+				foundIndex = index;
+			} else {
+				cloneData = $.extend(true, {}, item);
+			}
+			return false;
+		}
+	});
+	if (returnIndex) {
+		return foundIndex;
+	}
+	return cloneData;
+};
 
-    // Convert integer to bool checkboxes fields
-    updateRABGInfoFormCheckboxes(record);
 
-    // update record if it is already exists
-    var isExists = false;
-    for (var recordIndex = 0; recordIndex < bgInfoRecords.length; recordIndex++) {
-        if (bgInfoRecords[recordIndex].TCID === record.TCID && bgInfoRecords[recordIndex].recid === record.recid) {
-            bgInfoRecords[recordIndex] = record;
-            isExists = true;
-            break;
-        }
-    }
-
-    // Push new record
-    if(!isExists){
-        bgInfoRecords.push(record);
-    }
-
-    return bgInfoRecords;
-
+//-----------------------------------------------------------------------------
+// setPeopleLocalData - save the data for requested a TMPTCID in local data
+//-----------------------------------------------------------------------------
+window.setPeopleLocalData = function(TMPTCID, peopleData) {
+	var compData = getRAFlowCompData("people", app.raflow.activeFlowID) || [];
+	var dataIndex = -1;
+	compData.forEach(function(item, index) {
+		if (item.TMPTCID === TMPTCID) {
+			dataIndex = index;
+			return false;
+		}
+	});
+	if (dataIndex > -1) {
+		compData[dataIndex] = peopleData;
+	} else {
+		compData.push(peopleData);
+	}
 };
